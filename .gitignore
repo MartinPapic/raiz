@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.pyc
+
+# Env files
+*.env
+
+# Databases
+*.db
+
+# FAISS indexes
+*.bin
+*.pkl
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/.turbo/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# PowerShell scripts (opcionales)
+*.ps1
+
+# Debug scripts
+backend/debug_*.py
+
+# Scrapers experimentales
+backend/fetch_*.py
+
+# Seed scripts
+backend/seed_*.py
+
+# Tests (no públicos)
+backend/test_*.py
