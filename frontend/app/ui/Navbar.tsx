@@ -6,11 +6,12 @@ import { User } from '../viewmodels/useAuthViewModel';
 interface NavbarProps {
     user: User | null;
     onLogout: () => void;
-    isCuratorMode: boolean;
-    onToggleCuratorMode: () => void;
+    // Props kept for compatibility but unused or forced
+    isCuratorMode?: boolean;
+    onToggleCuratorMode?: () => void;
 }
 
-export default function Navbar({ user, onLogout, isCuratorMode, onToggleCuratorMode }: NavbarProps) {
+export default function Navbar({ user, onLogout }: NavbarProps) {
     return (
         <header className="bg-white dark:bg-gray-800 shadow">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -30,15 +31,20 @@ export default function Navbar({ user, onLogout, isCuratorMode, onToggleCuratorM
                             </span>
 
                             {user.role === 'admin' && (
-                                <button
-                                    onClick={onToggleCuratorMode}
-                                    className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${isCuratorMode
-                                            ? 'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-200'
-                                            : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-                                        }`}
-                                >
-                                    {isCuratorMode ? 'Modo Curador' : 'Activar Curador'}
-                                </button>
+                                <>
+                                    <Link
+                                        href="/admin/users"
+                                        className="text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                                    >
+                                        Usuarios
+                                    </Link>
+                                    <Link
+                                        href="/curator"
+                                        className="px-3 py-1 rounded-md text-sm font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-200 transition-colors"
+                                    >
+                                        Curador
+                                    </Link>
+                                </>
                             )}
 
                             <button

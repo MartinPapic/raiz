@@ -54,15 +54,25 @@ def parse_rss_feed(feed_url: str, source_name: str):
                 status="draft"
             )
             session.add(article)
-            session.commit()
-            session.refresh(article)
-            
-            # Index in Vector DB
             try:
-                index_article(article)
-            except Exception as e:
-                print(f"Error indexing article {article.id}: {e}")
+                session.commit()
+                session.refresh(article)
+                
+                # Index in Vector DB
+                try:
+                    index_article(article)
+                except Exception as e:
+                    print(f"Error indexing article {article.id}: {e}")
 
-            new_articles.append(article)
+                new_articles.append(article)
+            except Exception as e:
+                session.rollback()
+                # Check if it's an integrity error (duplicate URL)
+                if "UNIQUE constraint failed" in str(e) or "IntegrityError" in str(e):
+                    print(f"Duplicate article skipped: {entry.link}")
+                    continue
+                else:
+                    print(f"Error saving article: {e}")
+                    continue
         
     return len(new_articles)

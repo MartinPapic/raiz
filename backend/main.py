@@ -69,6 +69,76 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     )
     return {"access_token": access_token, "token_type": "bearer", "role": user.role}
 
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
+@app.post("/register", status_code=status.HTTP_201_CREATED)
+def register_user(user_create: UserCreate, session: Session = Depends(get_session)):
+    # Check if user already exists
+    existing_user = session.exec(select(User).where(User.username == user_create.username)).first()
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered"
+        )
+    
+    # Create new user
+    from app.auth import get_password_hash
+    hashed_password = get_password_hash(user_create.password)
+    new_user = User(username=user_create.username, hashed_password=hashed_password, role="user")
+    
+    session.add(new_user)
+    session.commit()
+    session.refresh(new_user)
+    
+    return {"message": "User created successfully", "username": new_user.username}
+
+# --- User Management (Admin Only) ---
+
+@app.get("/users", response_model=List[User])
+def get_users(session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return session.exec(select(User)).all()
+
+class UserRoleUpdate(BaseModel):
+    role: str
+
+@app.put("/users/{user_id}/role", response_model=User)
+def update_user_role(user_id: int, role_update: UserRoleUpdate, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    user_to_update = session.get(User, user_id)
+    if not user_to_update:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    if role_update.role not in ["admin", "user"]:
+        raise HTTPException(status_code=400, detail="Invalid role")
+        
+    user_to_update.role = role_update.role
+    session.add(user_to_update)
+    session.commit()
+    session.refresh(user_to_update)
+    return user_to_update
+
+@app.delete("/users/{user_id}")
+def delete_user(user_id: int, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    user_to_delete = session.get(User, user_id)
+    if not user_to_delete:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    if user_to_delete.id == current_user.id:
+        raise HTTPException(status_code=400, detail="Cannot delete yourself")
+        
+    session.delete(user_to_delete)
+    session.commit()
+    return {"ok": True}
+
 @app.post("/ingest")
 def ingest_feed(request: IngestRequest, current_user: User = Depends(get_current_user)):
     try:
@@ -80,6 +150,12 @@ def ingest_feed(request: IngestRequest, current_user: User = Depends(get_current
 @app.get("/articles", response_model=List[Article])
 def get_articles(status: str = "published", session: Session = Depends(get_session), current_user: User = Depends(get_optional_current_user)):
     # Access Control Logic for List
+    if status == "all":
+        if not current_user or current_user.role != "admin":
+            return [] # Or raise 403
+        articles = session.exec(select(Article)).all()
+        return articles
+
     if status != "published":
         if not current_user or current_user.role != "admin":
             # Return empty list or 403. Returning empty list mimics "no articles found"

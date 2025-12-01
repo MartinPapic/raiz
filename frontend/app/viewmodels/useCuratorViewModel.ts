@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 
 export function useCuratorViewModel() {
     const [isCuratorMode, setIsCuratorMode] = useState(false);
-    const [filterStatus, setFilterStatus] = useState<'draft' | 'published' | 'archived'>('draft');
+    const [filterStatus, setFilterStatus] = useState<'draft' | 'published' | 'archived' | 'all'>('draft');
     const router = useRouter();
 
     const toggleCuratorMode = () => {

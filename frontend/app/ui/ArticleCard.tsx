@@ -8,9 +8,11 @@ interface ArticleCardProps {
     onDelete?: (id: number) => void;
     onArchive?: (article: Article) => void;
     onScrape?: (article: Article) => void;
+    isSelected?: boolean;
+    onToggleSelect?: (id: number) => void;
 }
 
-export default function ArticleCard({ article, showEditButton, onEdit, onDelete, onArchive, onScrape }: ArticleCardProps) {
+export default function ArticleCard({ article, showEditButton, onEdit, onDelete, onArchive, onScrape, isSelected, onToggleSelect }: ArticleCardProps) {
     const title = article.title;
 
     const source = article.source;
@@ -21,16 +23,27 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
 
     const formattedDate = article.published_at
         ? new Date(article.published_at).toLocaleDateString('es-CL', {
-            day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+            timeZone: 'America/Santiago'
         })
         : 'Fecha desconocida';
 
     return (
-        <div className="p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+        <div className={`p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${isSelected ? 'ring-2 ring-green-500' : ''}`}>
             <div className="flex justify-between items-start mb-2">
-                <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
-                    {source}
-                </span>
+                <div className="flex items-center gap-2">
+                    {onToggleSelect && (
+                        <input
+                            type="checkbox"
+                            checked={isSelected || false}
+                            onChange={() => onToggleSelect(article.id)}
+                            className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                    )}
+                    <span className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
+                        {source}
+                    </span>
+                </div>
                 {article.status === 'draft' && (
                     <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full ml-2">
                         Borrador
@@ -41,9 +54,7 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
                         Archivado
                     </span>
                 )}
-                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full ml-2 flex items-center gap-1">
-                    ✨ IA
-                </span>
+
             </div>
             <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">
                 <Link href={`/article/${article.id}`} className="hover:underline">

@@ -52,7 +52,10 @@ export default function ArticleDetailView({ articleId }: ArticleDetailViewProps)
                             {article.source}
                         </span>
                         <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {article.published_at ? new Date(article.published_at).toLocaleDateString() : ''}
+                            {article.published_at ? new Date(article.published_at).toLocaleDateString('es-CL', {
+                                day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+                                timeZone: 'America/Santiago'
+                            }) : ''}
                         </span>
                         {article.status === 'draft' && (
                             <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">

@@ -307,7 +307,7 @@ export default function ArticleEditorModal({
                         className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                     >
                         <option value="draft">Borrador (Draft)</option>
-                        <option value="published">Publicado (Published)</option>
+                        <option value="published">Validado</option>
                         <option value="archived">Archivado (Archived)</option>
                     </select>
                 </div>
