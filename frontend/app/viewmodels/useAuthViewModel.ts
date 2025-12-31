@@ -1,66 +1,41 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { authRepository } from '../data/authRepository';
+import { useUser } from '@auth0/nextjs-auth0/client';
+
 
 export interface User {
     username: string;
     role: 'admin' | 'user';
+    picture?: string;
 }
 
 export function useAuthViewModel() {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-    const router = useRouter();
+    const { user: auth0User, error, isLoading } = useUser();
 
-    useEffect(() => {
-        checkAuth();
-    }, []);
+    // Map Auth0 user to our User interface
+    // Note: Role management needs to be handled via Auth0 Actions/Rules to add claims,
+    // or by fetching from backend. For MVP, we'll default to 'user' or check specific email.
+    const user: User | null = auth0User ? {
+        username: auth0User.name || auth0User.email || 'User',
+        role: (auth0User.email === 'admin@example.com' || auth0User.email === 'ma.papic@duocuc.cl' || auth0User['https://raiz-api/roles']?.includes('admin')) ? 'admin' : 'user', // Temporary hardcoded admin for dev
+        picture: auth0User.picture || undefined
+    } : null;
 
-    const checkAuth = () => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                setUser({ username: payload.sub, role: payload.role || 'user' });
-            } catch (e) {
-                console.error('Invalid token', e);
-                logout();
-            }
-        }
-        setLoading(false);
+    const login = async () => {
+        window.location.href = '/auth/login';
+        return true;
     };
 
-    const login = async (username: string, password: string) => {
-        try {
-            const data = await authRepository.login(username, password);
-            localStorage.setItem('token', data.access_token);
-            checkAuth();
-            return true;
-        } catch (error) {
-            console.error(error);
-            return false;
-        }
-    };
-
-    const register = async (username: string, password: string) => {
-        try {
-            await authRepository.register(username, password);
-            return { success: true };
-        } catch (error: any) {
-            console.error(error);
-            return { success: false, error: error.message || 'Registration failed' };
-        }
+    const register = async () => {
+        window.location.href = '/auth/login?screen_hint=signup';
+        return { success: true };
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
-        setUser(null);
-        router.push('/');
+        window.location.href = '/auth/logout';
     };
 
     return {
         user,
-        loading,
+        loading: isLoading,
         login,
         register,
         logout,

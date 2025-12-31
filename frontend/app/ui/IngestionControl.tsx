@@ -32,7 +32,8 @@ export default function IngestionControl({ onIngestComplete, prefill }: Ingestio
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const res = await fetch('http://localhost:8000/ingest', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const res = await fetch(`${apiUrl}/ingest`, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify({ feed_url: url, source_name: source }),

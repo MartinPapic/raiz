@@ -8,6 +8,8 @@ export function useArticlesViewModel(isCuratorMode: boolean, filterStatus: strin
     const [isSearching, setIsSearching] = useState(false);
     const [searchResults, setSearchResults] = useState<Article[]>([]);
 
+    const [featured, setFeatured] = useState<Article[]>([]);
+
     useEffect(() => {
         fetchArticles();
     }, [isCuratorMode, filterStatus]);
@@ -18,7 +20,16 @@ export function useArticlesViewModel(isCuratorMode: boolean, filterStatus: strin
             const status = isCuratorMode ? filterStatus : 'published';
             const token = localStorage.getItem('token') || '';
             const data = await articleRepository.getAll(status, token);
-            setArticles(data);
+
+            // Should featured be a separate call or just the top articles?
+            // For now, let's say top 3 published articles are featured if not in curator mode
+            if (!isCuratorMode && status === 'published') {
+                setFeatured(data.slice(0, 3));
+                setArticles(data.slice(3));
+            } else {
+                setFeatured([]);
+                setArticles(data);
+            }
         } catch (error) {
             console.error('Error fetching articles:', error);
         } finally {
@@ -49,6 +60,7 @@ export function useArticlesViewModel(isCuratorMode: boolean, filterStatus: strin
 
     return {
         articles,
+        featured,
         loading,
         isSearching,
         searchResults,

@@ -55,12 +55,12 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
                             </button>
                         </>
                     ) : (
-                        <Link
-                            href="/login"
+                        <a
+                            href="/auth/login"
                             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
                         >
                             Ingresar
-                        </Link>
+                        </a>
                     )}
                 </div>
             </div>

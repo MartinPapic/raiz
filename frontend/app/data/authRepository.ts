@@ -8,7 +8,8 @@ export const authRepository = {
         body.append('username', username);
         body.append('password', password);
 
-        const res = await fetch('http://localhost:8000/token', {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const res = await fetch(`${apiUrl}/token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: body,

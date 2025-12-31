@@ -10,9 +10,10 @@ interface ArticleCardProps {
     onScrape?: (article: Article) => void;
     isSelected?: boolean;
     onToggleSelect?: (id: number) => void;
+    highlight?: boolean;
 }
 
-export default function ArticleCard({ article, showEditButton, onEdit, onDelete, onArchive, onScrape, isSelected, onToggleSelect }: ArticleCardProps) {
+export default function ArticleCard({ article, showEditButton, onEdit, onDelete, onArchive, onScrape, isSelected, onToggleSelect, highlight }: ArticleCardProps) {
     const title = article.title;
 
     const source = article.source;
@@ -29,7 +30,7 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
         : 'Fecha desconocida';
 
     return (
-        <div className={`p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${isSelected ? 'ring-2 ring-green-500' : ''}`}>
+        <div className={`p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${isSelected ? 'ring-2 ring-green-500' : ''} ${highlight ? 'border-green-500 md:col-span-1 lg:col-span-1 border-2' : ''}`}>
             <div className="flex justify-between items-start mb-2">
                 <div className="flex items-center gap-2">
                     {onToggleSelect && (
@@ -56,7 +57,7 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
                 )}
 
             </div>
-            <h3 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">
+            <h3 className={`text-lg font-bold mb-2 text-gray-900 dark:text-gray-100 ${highlight ? 'text-xl md:text-2xl' : ''}`}>
                 <Link href={`/article/${article.id}`} className="hover:underline">
                     {title}
                 </Link>

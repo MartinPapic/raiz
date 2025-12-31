@@ -11,14 +11,12 @@ if sys.platform == 'win32':
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 from pydantic import BaseModel
 from app.models import User, Article, Source, KnowledgeItem, FeedHistory
 
 from app.database import create_db_and_tables, get_session
-from app.models import User, Article, Source, KnowledgeItem
-from app.auth import verify_password, create_access_token, get_current_user, get_optional_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.auth import get_current_user, get_optional_current_user
 from app.services.ingestion import parse_rss_feed
 from app.services.rag import search_similar
 from app.services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status, run_ingestion_job
@@ -56,49 +54,6 @@ def health_check():
 class IngestRequest(BaseModel):
     feed_url: str
     source_name: str
-
-@app.post("/token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
-    user = session.exec(select(User).where(User.username == form_data.username)).first()
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    # Include role in the token payload
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username, "role": user.role}, 
-        expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer", "role": user.role}
-
-class UserCreate(BaseModel):
-    username: str
-    password: str
-
-@app.post("/register", status_code=status.HTTP_201_CREATED)
-def register_user(user_create: UserCreate, session: Session = Depends(get_session)):
-    # Check if user already exists
-    existing_user = session.exec(select(User).where(User.username == user_create.username)).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
-        )
-    
-    # Create new user
-    from app.auth import get_password_hash
-    hashed_password = get_password_hash(user_create.password)
-    new_user = User(username=user_create.username, hashed_password=hashed_password, role="user")
-    
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
-    
-    return {"message": "User created successfully", "username": new_user.username}
 
 # --- User Management (Admin Only) ---
 
