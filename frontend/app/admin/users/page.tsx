@@ -1,103 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-
-interface User {
-    id: number;
-    username: string;
-    role: string;
-}
+import { useAdminViewModel } from '../../viewmodels/useAdminViewModel';
 
 export default function AdminUsersPage() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
-    const router = useRouter();
-
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
-    const fetchUsers = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            router.push('/login');
-            return;
-        }
-
-        try {
-            const res = await fetch('http://localhost:8000/users', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                setUsers(data);
-            } else {
-                setError('Failed to fetch users');
-                if (res.status === 401 || res.status === 403) {
-                    router.push('/');
-                }
-            }
-        } catch (err) {
-            setError('Error connecting to server');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleDelete = async (userId: number) => {
-        if (!confirm('Are you sure you want to delete this user?')) return;
-
-        const token = localStorage.getItem('token');
-        try {
-            const res = await fetch(`http://localhost:8000/users/${userId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (res.ok) {
-                setUsers(users.filter(u => u.id !== userId));
-            } else {
-                const data = await res.json();
-                alert(data.detail || 'Failed to delete user');
-            }
-        } catch (err) {
-            alert('Error deleting user');
-        }
-    };
-
-    const handleToggleRole = async (user: User) => {
-        const newRole = user.role === 'admin' ? 'user' : 'admin';
-        if (!confirm(`Change role of ${user.username} to ${newRole}?`)) return;
-
-        const token = localStorage.getItem('token');
-        try {
-            const res = await fetch(`http://localhost:8000/users/${user.id}/role`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ role: newRole })
-            });
-
-            if (res.ok) {
-                setUsers(users.map(u => u.id === user.id ? { ...u, role: newRole } : u));
-            } else {
-                const data = await res.json();
-                alert(data.detail || 'Failed to update role');
-            }
-        } catch (err) {
-            alert('Error updating role');
-        }
-    };
+    const { users, loading, error, handleDeleteUser, handleToggleRole } = useAdminViewModel();
 
     if (loading) return <div className="p-8 text-center">Loading...</div>;
 
@@ -142,7 +49,7 @@ export default function AdminUsersPage() {
                                             Cambiar Rol
                                         </button>
                                         <button
-                                            onClick={() => handleDelete(user.id)}
+                                            onClick={() => handleDeleteUser(user.id)}
                                             className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
                                         >
                                             Eliminar

@@ -17,4 +17,7 @@ export const authRepository = {
         if (!res.ok) throw new Error('Login failed');
         return res.json();
     },
+    register: async (username: string, password: string): Promise<any> => {
+        return api.post('/register', { username, password });
+    }
 };

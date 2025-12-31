@@ -18,7 +18,7 @@ print(f"DEBUG: GEMINI_API_KEY found: {bool(API_KEY)}")
 if API_KEY:
     genai.configure(api_key=API_KEY)
 
-def generate_article_content(title: str, summary: str, source_text: str = "") -> dict:
+def generate_article_content(title: str, summary: str, source_text: str = "", instruction: Optional[str] = None) -> dict:
     """
     Generates a synthetic article using Gemini.
     Returns a dictionary with 'title' and 'content'.
@@ -33,9 +33,19 @@ def generate_article_content(title: str, summary: str, source_text: str = "") ->
         
         # 🤖 PROMPT MULTI-AGENTE / AGENTE AUTÓNOMO DE VARIOS PASOS PARA REESCRITURA DE NOTICIAS (GEMINI 2.5)
 
+        instruction_text = ""
+        if instruction:
+            instruction_text = f"""
+            \n\n### ⚠️ INSTRUCCIÓN ADICIONAL DEL USUARIO:
+            El usuario ha solicitado explícitamente: "{instruction}"
+            Asegúrate de cumplir esta instrucción durante la FASE 4 (Reescritura).
+            """
+
         prompt = f"""
         Eres un **agente autónomo de periodismo asistido por IA**.  
         Tu misión es **buscar noticias, analizarlas, extraer hechos y reescribirlas** con calidad profesional, neutralidad editorial y originalidad total.
+
+        {instruction_text}
 
         La tarea debe ejecutarse mediante **pasos estructurados**.  
         No puedes saltarte pasos ni combinarlos.

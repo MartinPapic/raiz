@@ -4,33 +4,33 @@
 
 Raíz es un medio digital automatizado que combina inteligencia artificial responsable, tecnologías RAG y curaduría editorial humana para acelerar la comunicación sobre sostenibilidad en Latinoamérica.
 
-## 🚀 Funcionalidades (MVP)
+## 🚀 Funcionalidades
 
-- **Ingesta Automática**: Recopilación de artículos desde feeds RSS (ej. BBC, El País).
-- **Web Scraping**: Extracción del contenido completo de los artículos originales.
+- **Ingesta Automática e Inteligente**:
+    - Recopilación programada (cada 1 hora) desde feeds RSS (ej. BBC, El País).
+    - **Web Scraping**: Extracción del contenido completo.
+    - **Historial de Conexiones**: Monitoreo de éxito/fallo de cada fuente.
 - **Generación con IA (Gemini)**:
-    - **Reescritura Periodística**: Generación de artículos únicos basados en hechos extraídos.
-    - **Auditoría de Contenido**: Revisión automática de factualidad, estilo y estructura.
-    - **Refinamiento**: Edición asistida por instrucciones en lenguaje natural.
-- **Búsqueda Semántica (RAG)**: Búsqueda de artículos relevantes utilizando embeddings (FAISS).
-- **Base de Conocimiento**: Almacenamiento y sugerencia de información contextual relevante.
+    - **Reescritura Periodística**: Artículos únicos basados en hechos.
+    - **Auditoría de Contenido**: Revisión automática de factualidad y estilo.
+    - **Refinamiento**: Edición con instrucciones en lenguaje natural.
+- **Búsqueda Semántica (RAG)**: Búsqueda de artículos relevantes con embeddings (FAISS).
 - **Modo Curador**:
-    - Flujo de trabajo: Borrador -> Publicado -> Archivado.
-    - Edición manual y asistida por IA.
-    - **Gestión de Fuentes**: Administración de feeds RSS y lista de conexiones exitosas.
-    - **Historial de Conexiones**: Registro de intentos de ingesta y resultados.
-- **Autenticación**: Acceso seguro para curadores (JWT) con roles (admin/user).
+    - Flujo: Borrador -> Publicado -> Archivado.
+    - Gestión de Fuentes (CRUD).
+    - Control del Scheduler (Iniciar/Detener/Ejecutar ahora).
+- **Autenticación**: JWT con roles (admin/user).
 
 ## 🛠 Tech Stack
 
 - **Frontend**: Next.js 16 (Turbopack), React 19, TailwindCSS 4.
 - **Backend**: FastAPI, SQLModel (SQLite), Pydantic.
 - **IA / Data**:
-    - `google-generativeai` (Gemini 1.5 Flash) para generación y razonamiento.
-    - `sentence-transformers` para embeddings.
-    - `faiss-cpu` para base de datos vectorial.
-    - `beautifulsoup4` para scraping.
-    - `argon2` + `python-jose` para seguridad.
+    - `google-generativeai` (Gemini 1.5 Flash).
+    - `sentence-transformers` + `faiss-cpu` (RAG).
+    - `beautifulsoup4` (Scraping).
+    - `apscheduler` (Automatización).
+    - `argon2` + `python-jose` (Seguridad).
 
 ## 📦 Instalación y Ejecución
 
@@ -44,27 +44,20 @@ Raíz es un medio digital automatizado que combina inteligencia artificial respo
 ```bash
 cd backend
 python -m venv venv
-# Windows
-.\venv\Scripts\activate
-# Mac/Linux
-source venv/bin/activate
+.\venv\Scripts\activate  # Windows
+# source venv/bin/activate # Mac/Linux
 
 pip install -r requirements.txt
 
-# Configuración
-# Crea un archivo .env con: GEMINI_API_KEY=tu_clave_aqui
+# Configuración: Crea .env con GEMINI_API_KEY=tu_clave
 
-# Scripts de Inicialización
-python seed_user.py          # Crear usuario admin inicial
-python seed_south_america.py # Cargar 20 fuentes de Sudamérica
+# Inicialización
+python seed_user.py          # Admin inicial (admin/admin123)
+python seed_south_america.py # Fuentes iniciales
 
-# Iniciar servidor (Script optimizado para Windows)
+# Iniciar servidor (Incluye Scheduler)
 .\start_server.ps1
 ```
-
-**Scripts de Utilidad:**
-- `.\kill8000.ps1`: Mata procesos zombies bloqueando el puerto 8000.
-- `python debug_auth.py`: Verifica credenciales de usuario.
 
 ### 2. Frontend (Next.js)
 
@@ -73,23 +66,25 @@ cd frontend
 npm install
 npm run dev
 ```
+Acceso: `http://localhost:3000`
 
-El frontend estará disponible en `http://localhost:3000`.
+### 🧪 Testing y Verificación
 
-## 🔐 Credenciales por Defecto
+El backend incluye scripts de verificación en la carpeta raíz (`backend/`):
 
-- **Usuario**: `admin`
-- **Contraseña**: `admin123`
+- `python check_ingestion_fix.py`: Prueba la lógica de ingesta.
+- `python debug_auth.py`: Diagnóstico de autenticación.
+- `python check_user_mgmt.py`: Verifica gestión de usuarios.
+- `.\kill8000.ps1`: (Windows) Libera el puerto 8000 si se bloquea.
 
 ## 🗺 Roadmap
 
-1. **MVP (Completado)**: Ingesta, RAG, Curaduría, Auth, Integración Gemini (Generación/Auditoría).
-2. **Fase 2 (Próximos Pasos)**:
-    - Automatización de ingesta (Cron jobs / Celery).
-    - Despliegue (Docker/Vercel/Render).
-    - Soporte para múltiples usuarios y roles granulares.
-3. **Escalamiento**: Base de datos PostgreSQL, Analytics avanzado.
+1. **MVP (Completado)**: Ingesta, RAG, Curaduría, Auth, Gemini.
+2. **Fase 2 (En Progreso)**:
+    - [x] Automatización de ingesta (Scheduler implementado).
+    - [ ] Despliegue (Docker/Cloud).
+    - [ ] Consolidación de Tests (Migrar scripts a `pytest`).
+3. **Escalamiento**: PostgreSQL, Analytics.
 
 ## Licencia
-
 MIT. Autor: Martín Papic.

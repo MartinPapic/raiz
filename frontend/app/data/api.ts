@@ -5,7 +5,10 @@ export const api = {
         const headers: any = {};
         if (token) headers['Authorization'] = `Bearer ${token}`;
         const res = await fetch(`${API_URL}${endpoint}`, { headers });
-        if (!res.ok) throw new Error(`GET ${endpoint} failed`);
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(`GET ${endpoint} failed: ${res.status} ${res.statusText} - ${text}`);
+        }
         return res.json();
     },
     post: async (endpoint: string, body: any, token?: string) => {

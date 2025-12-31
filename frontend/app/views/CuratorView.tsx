@@ -1,175 +1,93 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useArticlesViewModel } from '../viewmodels/useArticlesViewModel';
 import { useCuratorViewModel } from '../viewmodels/useCuratorViewModel';
-import { useSourceViewModel } from '../viewmodels/useSourceViewModel';
-import { useAuthViewModel } from '../viewmodels/useAuthViewModel';
 import ArticleCard from '../ui/ArticleCard';
 import SearchBar from '../ui/SearchBar';
 import IngestionControl from '../ui/IngestionControl';
 import SourceList from '../ui/SourceList';
 import SuccessfulSourceList from '../ui/SuccessfulSourceList';
 import ConnectionHistoryList from '../ui/ConnectionHistoryList';
+import SchedulerControl from '../ui/SchedulerControl';
 import Navbar from '../ui/Navbar';
-import { Article } from '../model';
-import { articleRepository } from '../data/articleRepository';
 
 export default function CuratorView() {
     const router = useRouter();
-    const { user, logout } = useAuthViewModel();
-    // In CuratorView, we force curator mode to be true for logic that depends on it
-    const { filterStatus, setFilterStatus } = useCuratorViewModel();
-
-    // Always true in this view
-    const effectiveCuratorMode = true;
 
     const {
-        articles,
-        loading,
+        // Auth & Loading
+        user,
+        authLoading,
+        articlesLoading,
+
+        // Data
+        displayedArticles,
+        successfulSources,
+        connectionHistory,
+
+        // UI State
+        filterStatus,
+        setFilterStatus,
+        viewMode,
+        setViewMode,
+        showSourceManager,
+        setShowSourceManager,
+        ingestionPrefill,
+        setIngestionPrefill,
+
+        // Filters
+        filterText,
+        setFilterText,
+        startDate,
+        setStartDate,
+        endDate,
+        setEndDate,
         isSearching,
-        searchResults,
+
+        // Selection
+        selectedArticleIds,
+        handleToggleSelect,
+        handleSelectAll,
+
+        // Modals
+        showNewArticleModal,
+        setShowNewArticleModal,
+        newArticleMode,
+        setNewArticleMode,
+        newArticleUrl,
+        setNewArticleUrl,
+        newArticleTitle,
+        setNewArticleTitle,
+        newArticleContent,
+        setNewArticleContent,
+        newArticleSource,
+        setNewArticleSource,
+        isCreating,
+
+        // Actions
         handleSearch,
         refreshArticles,
-        setArticles
-    } = useArticlesViewModel(effectiveCuratorMode, filterStatus);
+        handleDeleteArticle,
+        handleArchiveArticle,
+        handleScrapeArticle,
+        handleBulkDelete,
+        handleBulkArchive,
+        handleCreateArticle,
+        handleIngestArticle,
+        logout
+    } = useCuratorViewModel();
 
-    const [showSourceManager, setShowSourceManager] = useState(false);
-    const [ingestionPrefill, setIngestionPrefill] = useState<{ url: string; source: string } | null>(null);
-    const { successfulSources, connectionHistory } = useSourceViewModel();
+    if (authLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            </div>
+        );
+    }
 
-    // Curator Filters
-    const [filterText, setFilterText] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [viewMode, setViewMode] = useState<'list' | 'columns'>('list');
-
-    // Bulk Actions State
-    const [selectedArticleIds, setSelectedArticleIds] = useState<Set<number>>(new Set());
-
-    const displayedArticles = isSearching ? searchResults : articles.filter(article => {
-        // 1. Text Filter (Name/Content)
-        if (filterText) {
-            const lowerFilter = filterText.toLowerCase();
-            const matchesTitle = article.title?.toLowerCase().includes(lowerFilter);
-            const matchesSummary = article.summary?.toLowerCase().includes(lowerFilter);
-            if (!matchesTitle && !matchesSummary) return false;
-        }
-
-        // 2. Date Range Filter
-        if (startDate) {
-            const articleDate = new Date(article.published_at || article.created_at);
-            const start = new Date(startDate);
-            if (articleDate < start) return false;
-        }
-        if (endDate) {
-            const articleDate = new Date(article.published_at || article.created_at);
-            const end = new Date(endDate);
-            // Set end date to end of day
-            end.setHours(23, 59, 59, 999);
-            if (articleDate > end) return false;
-        }
-
-        return true;
-    });
-
-    const handleDeleteArticle = async (id: number) => {
-        if (!confirm('¿Estás seguro de eliminar este artículo?')) return;
-        try {
-            const token = localStorage.getItem('token') || '';
-            await articleRepository.delete(id, token);
-            refreshArticles();
-        } catch (error) {
-            alert('Error deleting article');
-        }
-    };
-
-    const handleArchiveArticle = async (article: Article) => {
-        try {
-            const token = localStorage.getItem('token') || '';
-            await articleRepository.update({ ...article, status: 'archived' }, token);
-            refreshArticles();
-        } catch (error) {
-            alert('Error archiving article');
-        }
-    };
-
-    const handleScrapeArticle = async (article: Article) => {
-        if (!confirm('Esto reemplazará el contenido actual con el texto original. ¿Continuar?')) return;
-        try {
-            const token = localStorage.getItem('token') || '';
-            await articleRepository.scrape(article.id, token);
-            refreshArticles();
-        } catch (error: any) {
-            console.error("Scrape error:", error);
-            alert(`Error recuperando texto original: ${error.message || 'Unknown error'}`);
-        }
-    };
-
-    // Bulk Action Handlers
-    const handleToggleSelect = (id: number) => {
-        const newSelected = new Set(selectedArticleIds);
-        if (newSelected.has(id)) {
-            newSelected.delete(id);
-        } else {
-            newSelected.add(id);
-        }
-        setSelectedArticleIds(newSelected);
-    };
-
-    const handleSelectAll = () => {
-        if (selectedArticleIds.size === displayedArticles.length) {
-            setSelectedArticleIds(new Set());
-        } else {
-            setSelectedArticleIds(new Set(displayedArticles.map(a => a.id)));
-        }
-    };
-
-    const handleBulkDelete = async () => {
-        if (!confirm(`¿Estás seguro de eliminar ${selectedArticleIds.size} artículos?`)) return;
-
-        const token = localStorage.getItem('token') || '';
-        let successCount = 0;
-
-        for (const id of selectedArticleIds) {
-            try {
-                await articleRepository.delete(id, token);
-                successCount++;
-            } catch (error) {
-                console.error(`Error deleting article ${id}:`, error);
-            }
-        }
-
-        if (successCount > 0) {
-            setSelectedArticleIds(new Set());
-            refreshArticles();
-            alert(`Se eliminaron ${successCount} artículos.`);
-        }
-    };
-
-    const handleBulkArchive = async () => {
-        const token = localStorage.getItem('token') || '';
-        let successCount = 0;
-
-        for (const id of selectedArticleIds) {
-            try {
-                const article = articles.find(a => a.id === id);
-                if (article) {
-                    await articleRepository.update({ ...article, status: 'archived' }, token);
-                    successCount++;
-                }
-            } catch (error) {
-                console.error(`Error archiving article ${id}:`, error);
-            }
-        }
-
-        if (successCount > 0) {
-            setSelectedArticleIds(new Set());
-            refreshArticles();
-            alert(`Se archivaron ${successCount} artículos.`);
-        }
-    };
+    if (!user || user.role !== 'admin') {
+        return null; // Will redirect
+    }
 
     return (
         <main className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
@@ -198,6 +116,8 @@ export default function CuratorView() {
 
                         {showSourceManager && <SourceList />}
 
+                        <SchedulerControl />
+
                         <SuccessfulSourceList
                             sources={successfulSources}
                             onSelectSource={(url, name) => setIngestionPrefill({ url, source: name })}
@@ -209,6 +129,15 @@ export default function CuratorView() {
                         />
 
                         <ConnectionHistoryList history={connectionHistory} />
+
+                        <div className="flex justify-between items-center pt-2 border-t dark:border-gray-700">
+                            <button
+                                onClick={() => setShowNewArticleModal(true)}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium text-sm flex items-center gap-2"
+                            >
+                                <span>+</span> Nuevo Artículo
+                            </button>
+                        </div>
 
                         <div className="flex justify-between items-center pt-2 border-t dark:border-gray-700">
                             <div className="flex gap-2">
@@ -327,7 +256,7 @@ export default function CuratorView() {
                                 : `Modo Curador: ${filterStatus === 'draft' ? 'Borradores' : filterStatus === 'published' ? 'Validados' : filterStatus === 'archived' ? 'Archivados' : 'Todos'}`}
                     </h2>
 
-                    {loading ? (
+                    {articlesLoading ? (
                         <div className="text-center py-12">
                             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
                             <p className="mt-4 text-gray-500">Cargando artículos...</p>
@@ -433,6 +362,103 @@ export default function CuratorView() {
                     )}
                 </div>
             </div>
-        </main>
+
+
+            {/* New Article Modal */}
+            {
+                showNewArticleModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+                            <div className="p-4 border-b dark:border-gray-700 flex justify-between items-center">
+                                <h3 className="text-lg font-bold dark:text-white">Nuevo Artículo</h3>
+                                <button onClick={() => setShowNewArticleModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400">✕</button>
+                            </div>
+
+                            <div className="p-4 border-b dark:border-gray-700 flex gap-4">
+                                <button
+                                    onClick={() => setNewArticleMode('url')}
+                                    className={`pb-2 text-sm font-medium border-b-2 ${newArticleMode === 'url' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Importar desde URL
+                                </button>
+                                <button
+                                    onClick={() => setNewArticleMode('manual')}
+                                    className={`pb-2 text-sm font-medium border-b-2 ${newArticleMode === 'manual' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                                >
+                                    Crear Manualmente
+                                </button>
+                            </div>
+
+                            <div className="p-6 overflow-y-auto flex-1">
+                                {newArticleMode === 'url' ? (
+                                    <div className="space-y-4">
+                                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                                            Ingresa la URL de una noticia para extraer su contenido automáticamente.
+                                        </p>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1 dark:text-gray-300">URL del Artículo</label>
+                                            <input
+                                                type="url"
+                                                value={newArticleUrl}
+                                                onChange={(e) => setNewArticleUrl(e.target.value)}
+                                                placeholder="https://ejemplo.com/noticia"
+                                                className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1 dark:text-gray-300">Título *</label>
+                                            <input
+                                                type="text"
+                                                value={newArticleTitle}
+                                                onChange={(e) => setNewArticleTitle(e.target.value)}
+                                                className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1 dark:text-gray-300">Fuente (Opcional)</label>
+                                            <input
+                                                type="text"
+                                                value={newArticleSource}
+                                                onChange={(e) => setNewArticleSource(e.target.value)}
+                                                placeholder="Ej: Comunicado de Prensa"
+                                                className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1 dark:text-gray-300">Contenido *</label>
+                                            <textarea
+                                                value={newArticleContent}
+                                                onChange={(e) => setNewArticleContent(e.target.value)}
+                                                rows={10}
+                                                className="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono text-sm"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-4 border-t dark:border-gray-700 flex justify-end gap-3 bg-gray-50 dark:bg-gray-900 rounded-b-lg">
+                                <button
+                                    onClick={() => setShowNewArticleModal(false)}
+                                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={newArticleMode === 'url' ? handleIngestArticle : handleCreateArticle}
+                                    disabled={isCreating}
+                                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                                >
+                                    {isCreating ? 'Procesando...' : (newArticleMode === 'url' ? 'Importar' : 'Crear')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </main >
     );
 }

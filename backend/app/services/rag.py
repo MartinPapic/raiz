@@ -2,13 +2,18 @@ import faiss
 import numpy as np
 import pickle
 import os
-from sentence_transformers import SentenceTransformer
-from app.models import Article
-from typing import List, Dict
-
-# Initialize Sentence Transformer model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# Lazy load SentenceTransformer
+model = None
 embedding_dim = 384
+
+def get_model():
+    global model
+    if model is None:
+        print("Loading SentenceTransformer model...")
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer('all-MiniLM-L6-v2')
+        print("SentenceTransformer model loaded.")
+    return model
 
 # Initialize FAISS index
 index_file = "faiss_index.bin"
@@ -36,7 +41,7 @@ def index_article(article: Article):
 
     # Combine title and summary/content for embedding
     text_to_embed = f"{article.title}. {article.summary or ''}"
-    embedding = model.encode([text_to_embed])
+    embedding = get_model().encode([text_to_embed])
     
     # Add to FAISS
     index.add(np.array(embedding).astype('float32'))
@@ -64,7 +69,7 @@ def search_similar(query: str, n_results: int = 5) -> List[dict]:
     if index.ntotal == 0:
         return []
 
-    embedding = model.encode([query])
+    embedding = get_model().encode([query])
     D, I = index.search(np.array(embedding).astype('float32'), k=n_results)
     
     results = []

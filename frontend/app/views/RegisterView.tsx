@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuthViewModel } from '../viewmodels/useAuthViewModel';
 
 export default function RegisterView() {
     const [username, setUsername] = useState('');
@@ -11,6 +12,7 @@ export default function RegisterView() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const router = useRouter();
+    const { register } = useAuthViewModel();
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -22,24 +24,15 @@ export default function RegisterView() {
             return;
         }
 
-        try {
-            const res = await fetch('http://localhost:8000/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
-            });
+        const result = await register(username, password);
 
-            if (res.ok) {
-                setSuccess('Usuario registrado exitosamente. Redirigiendo al login...');
-                setTimeout(() => {
-                    router.push('/login');
-                }, 2000);
-            } else {
-                const data = await res.json();
-                setError(data.detail || 'Error al registrar usuario');
-            }
-        } catch (err) {
-            setError('Error al conectar con el servidor');
+        if (result.success) {
+            setSuccess('Usuario registrado exitosamente. Redirigiendo al login...');
+            setTimeout(() => {
+                router.push('/login');
+            }, 2000);
+        } else {
+            setError(result.error || 'Error al registrar usuario');
         }
     };
 

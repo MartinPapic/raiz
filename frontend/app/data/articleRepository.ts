@@ -5,8 +5,8 @@ export const articleRepository = {
     getAll: async (status: string = 'published', token?: string): Promise<Article[]> => {
         return api.get(`/articles?status=${status}`, token);
     },
-    getById: async (id: number): Promise<Article> => {
-        return api.get(`/articles/${id}`);
+    getById: async (id: number, token?: string): Promise<Article> => {
+        return api.get(`/articles/${id}`, token);
     },
     search: async (query: string): Promise<Article[]> => {
         return api.get(`/search?query=${encodeURIComponent(query)}`);
@@ -14,24 +14,27 @@ export const articleRepository = {
     ingest: async (feedUrl: string, sourceName: string, token: string) => {
         return api.post('/ingest', { feed_url: feedUrl, source_name: sourceName }, token);
     },
+    create: async (title: string, content: string, source: string, token: string): Promise<Article> => {
+        return api.post('/articles', { title, content, source }, token);
+    },
     update: async (article: Article, token: string): Promise<Article> => {
         return api.put(`/articles/${article.id}`, article, token);
     },
     delete: async (id: number, token: string) => {
         return api.delete(`/articles/${id}`, token);
     },
-    regenerate: async (id: number, token: string): Promise<Article> => {
-        return api.post(`/articles/${id}/regenerate`, {}, token);
+    regenerate: async (id: number, token: string, instruction?: string): Promise<Article> => {
+        return api.post(`/articles/${id}/regenerate`, { instruction }, token);
     },
     scrape: async (id: number, token: string): Promise<Article> => {
         return api.post(`/articles/${id}/scrape`, {}, token);
     },
     refine: async (id: number, content: string, instruction: string, token: string): Promise<string> => {
-        const response = await api.post<{ refined_content: string }>(`/articles/${id}/refine`, { content, instruction }, token);
+        const response = await api.post(`/articles/${id}/refine`, { content, instruction }, token);
         return response.refined_content;
     },
     audit: async (id: number, token: string): Promise<string> => {
-        const response = await api.post<{ audit_report: string }>(`/articles/${id}/audit`, {}, token);
+        const response = await api.post(`/articles/${id}/audit`, {}, token);
         return response.audit_report;
     },
 

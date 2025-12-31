@@ -1,25 +1,72 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Article } from '../model';
 import ArticleCard from '../ui/ArticleCard';
 import Link from 'next/link';
 
 interface CuratorEditorViewProps {
     article: Article;
-    onSave: (article: Article) => Promise<void>;
-    onCancel: () => void;
-    onRegenerate: () => Promise<Article>;
-    onRefine: (instruction: string, currentContent: string) => Promise<string>;
-    onScrape: () => Promise<Article>;
-    onAudit: () => Promise<string>;
-    onRegenerateWithAudit: (report: string) => Promise<string>;
-    onAddToKnowledgeBase: (content: string, tags: string) => Promise<void>;
+
+    // Form State
+    title: string;
+    setTitle: (value: string) => void;
+    content: string;
+    setContent: (value: string) => void;
+    originalContent: string;
+    tags: string;
+    setTags: (value: string) => void;
+    status: 'draft' | 'published' | 'archived';
+    setStatus: (value: 'draft' | 'published' | 'archived') => void;
+
+    // UI State
+    isSaving: boolean;
+    isRegenerating: boolean;
+    isRefining: boolean;
+    isScraping: boolean;
+    isAuditing: boolean;
+    isAddingToKB: boolean;
+    auditReport: string | null;
+    setAuditReport: (value: string | null) => void;
+    showRefineMenu: boolean;
+    setShowRefineMenu: (value: boolean) => void;
+    customInstruction: string;
+    setCustomInstruction: (value: string) => void;
+    regenerateInstruction: string;
+    setRegenerateInstruction: (value: string) => void;
+
+    // Data
     knowledgeBaseSuggestions: any[];
+
+    // Actions
+    onSave: () => Promise<void>;
+    onCancel: () => void;
+    onRegenerate: () => Promise<void>;
+    onRefine: (instruction: string) => Promise<void>;
+    onScrape: () => Promise<void>;
+    onAudit: () => Promise<void>;
+    onRegenerateWithAudit: (report: string) => Promise<void>;
+    onAddToKnowledgeBase: () => Promise<void>;
+    onRecoverOriginal: () => void;
 }
 
 export default function CuratorEditorView({
-    article: initialArticle,
+    article,
+    title, setTitle,
+    content, setContent,
+    originalContent,
+    tags, setTags,
+    status, setStatus,
+    isSaving,
+    isRegenerating,
+    isRefining,
+    isScraping,
+    isAuditing,
+    isAddingToKB,
+    auditReport, setAuditReport,
+    showRefineMenu, setShowRefineMenu,
+    customInstruction, setCustomInstruction,
+    regenerateInstruction, setRegenerateInstruction,
+    knowledgeBaseSuggestions,
     onSave,
     onCancel,
     onRegenerate,
@@ -28,142 +75,8 @@ export default function CuratorEditorView({
     onAudit,
     onRegenerateWithAudit,
     onAddToKnowledgeBase,
-    knowledgeBaseSuggestions,
+    onRecoverOriginal
 }: CuratorEditorViewProps) {
-    // Local state for the article being edited
-    const [article, setArticle] = useState<Article>(initialArticle);
-
-    // Form states
-    const [title, setTitle] = useState(initialArticle.title);
-    const [content, setContent] = useState(initialArticle.content || initialArticle.summary || '');
-    const [originalContent, setOriginalContent] = useState(initialArticle.original_content || '');
-    const [tags, setTags] = useState(initialArticle.tags || '');
-    const [status, setStatus] = useState(initialArticle.status);
-
-    // UI states
-    const [isSaving, setIsSaving] = useState(false);
-    const [isRegenerating, setIsRegenerating] = useState(false);
-    const [isRefining, setIsRefining] = useState(false);
-    const [isScraping, setIsScraping] = useState(false);
-    const [isAuditing, setIsAuditing] = useState(false);
-    const [isAddingToKB, setIsAddingToKB] = useState(false);
-    const [auditReport, setAuditReport] = useState<string | null>(null);
-    const [showRefineMenu, setShowRefineMenu] = useState(false);
-    const [customInstruction, setCustomInstruction] = useState('');
-
-    // Sync local state with prop updates (e.g. if parent refetches)
-    useEffect(() => {
-        setArticle(initialArticle);
-        setTitle(initialArticle.title);
-        setContent(initialArticle.content || initialArticle.summary || '');
-        setOriginalContent(initialArticle.original_content || '');
-        setTags(initialArticle.tags || '');
-        setStatus(initialArticle.status);
-    }, [initialArticle]);
-
-    // Update the preview article object whenever form fields change
-    useEffect(() => {
-        setArticle(prev => ({
-            ...prev,
-            title,
-            content,
-            summary: content.length > 200 ? content.substring(0, 200) + '...' : content,
-            tags,
-            status
-        }));
-    }, [title, content, tags, status]);
-
-    const handleSave = async () => {
-        setIsSaving(true);
-        try {
-            const newSummary = content.length > 200 ? content.substring(0, 200) + '...' : content;
-            const updatedArticle = { ...article, title, content, summary: newSummary, tags, status };
-            await onSave(updatedArticle);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const handleRegenerate = async () => {
-        if (!confirm('Esto reescribirá el título y el contenido usando IA. ¿Continuar?')) return;
-        setIsRegenerating(true);
-        try {
-            const regenerated = await onRegenerate();
-            // Update local state with new data
-            setTitle(regenerated.title);
-            setContent(regenerated.content || regenerated.summary || '');
-            setTags(regenerated.tags || '');
-        } finally {
-            setIsRegenerating(false);
-        }
-    };
-
-    const handleRefine = async (instruction: string) => {
-        setIsRefining(true);
-        try {
-            const refinedContent = await onRefine(instruction, content);
-            setContent(refinedContent);
-            setShowRefineMenu(false);
-            setCustomInstruction('');
-        } finally {
-            setIsRefining(false);
-        }
-    };
-
-    const handleScrape = async () => {
-        if (!confirm('Esto reemplazará el contenido actual con el texto original. ¿Continuar?')) return;
-        setIsScraping(true);
-        try {
-            const scraped = await onScrape();
-            setOriginalContent(scraped.original_content || '');
-            // Optionally update content too if that's desired behavior, 
-            // but usually we just want to have the original available for reference
-        } finally {
-            setIsScraping(false);
-        }
-    };
-
-    const handleAudit = async () => {
-        setIsAuditing(true);
-        try {
-            const report = await onAudit();
-            setAuditReport(report);
-        } finally {
-            setIsAuditing(false);
-        }
-    };
-
-    const handleRegenerateWithAudit = async (report: string) => {
-        setIsRefining(true);
-        try {
-            const refinedContent = await onRegenerateWithAudit(report);
-            setContent(refinedContent);
-        } finally {
-            setIsRefining(false);
-        }
-    };
-
-    const handleAddToKB = async () => {
-        setIsAddingToKB(true);
-        try {
-            await onAddToKnowledgeBase(content, tags);
-            alert('Añadido a la base de conocimientos correctamente');
-        } catch (error) {
-            alert('Error al añadir a la base de conocimientos');
-        } finally {
-            setIsAddingToKB(false);
-        }
-    };
-
-    const handleRecoverOriginal = () => {
-        if (originalContent) {
-            if (confirm('¿Estás seguro de que quieres reemplazar tu borrador con el texto original?')) {
-                setContent(originalContent);
-            }
-        } else {
-            alert('No hay contenido original disponible para recuperar.');
-        }
-    };
 
     const refineOptions = [
         "Corregir gramática y estilo",
@@ -190,7 +103,7 @@ export default function CuratorEditorView({
                         Cancelar
                     </button>
                     <button
-                        onClick={handleSave}
+                        onClick={onSave}
                         disabled={isSaving}
                         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
                     >
@@ -207,7 +120,7 @@ export default function CuratorEditorView({
                         {/* AI Tools Toolbar */}
                         <div className="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                             <button
-                                onClick={handleAudit}
+                                onClick={onAudit}
                                 disabled={isAuditing}
                                 className="px-3 py-1 text-sm bg-red-100 text-red-800 border border-red-200 rounded hover:bg-red-200 disabled:opacity-50 flex items-center gap-1 font-bold"
                             >
@@ -227,7 +140,7 @@ export default function CuratorEditorView({
                                         {refineOptions.map((option) => (
                                             <button
                                                 key={option}
-                                                onClick={() => handleRefine(option)}
+                                                onClick={() => onRefine(option)}
                                                 className="block w-full text-left px-2 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
                                             >
                                                 {option}
@@ -241,10 +154,10 @@ export default function CuratorEditorView({
                                                 value={customInstruction}
                                                 onChange={(e) => setCustomInstruction(e.target.value)}
                                                 className="w-full px-2 py-1 text-sm border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white mb-1"
-                                                onKeyDown={(e) => e.key === 'Enter' && customInstruction && handleRefine(customInstruction)}
+                                                onKeyDown={(e) => e.key === 'Enter' && customInstruction && onRefine(customInstruction)}
                                             />
                                             <button
-                                                onClick={() => customInstruction && handleRefine(customInstruction)}
+                                                onClick={() => customInstruction && onRefine(customInstruction)}
                                                 className="w-full text-center text-xs bg-purple-600 text-white py-1 rounded hover:bg-purple-700"
                                             >
                                                 Ir
@@ -255,15 +168,7 @@ export default function CuratorEditorView({
                             </div>
 
                             <button
-                                onClick={handleRegenerate}
-                                disabled={isRegenerating}
-                                className="px-3 py-1 text-sm bg-green-100 text-green-800 rounded hover:bg-green-200 disabled:opacity-50"
-                            >
-                                {isRegenerating ? 'Regenerando...' : '↻ Regenerar'}
-                            </button>
-
-                            <button
-                                onClick={handleAddToKB}
+                                onClick={onAddToKnowledgeBase}
                                 disabled={isAddingToKB}
                                 className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded hover:bg-blue-200 disabled:opacity-50"
                             >
@@ -314,7 +219,7 @@ export default function CuratorEditorView({
                                     <label className="block text-sm font-medium dark:text-gray-300">Contenido (Borrador)</label>
                                     <button
                                         type="button"
-                                        onClick={handleRecoverOriginal}
+                                        onClick={onRecoverOriginal}
                                         disabled={!originalContent}
                                         className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
                                     >
@@ -328,13 +233,31 @@ export default function CuratorEditorView({
                                 />
                             </div>
 
+                            {/* Regenerate Section */}
+                            <div className="flex items-center gap-2 py-2">
+                                <input
+                                    type="text"
+                                    placeholder="Instrucción para regenerar..."
+                                    value={regenerateInstruction}
+                                    onChange={(e) => setRegenerateInstruction(e.target.value)}
+                                    className="flex-1 px-3 py-2 text-sm border rounded dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                                />
+                                <button
+                                    onClick={onRegenerate}
+                                    disabled={isRegenerating}
+                                    className="px-4 py-2 text-sm font-medium bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {isRegenerating ? 'Regenerando...' : '↻ Regenerar'}
+                                </button>
+                            </div>
+
                             {/* Original Content (Collapsed or Secondary) */}
                             <div className="border-t pt-4 dark:border-gray-700">
                                 <div className="flex justify-between items-center mb-1">
                                     <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Contenido Original (Referencia)</label>
                                     <button
                                         type="button"
-                                        onClick={handleScrape}
+                                        onClick={onScrape}
                                         disabled={isScraping}
                                         className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 disabled:opacity-50"
                                     >
@@ -344,7 +267,7 @@ export default function CuratorEditorView({
                                 <textarea
                                     value={originalContent}
                                     readOnly
-                                    className="w-full h-32 px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 font-mono text-xs bg-gray-50 dark:bg-gray-900/50 resize-none"
+                                    className="w-full h-96 px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-gray-500 font-mono text-xs bg-gray-50 dark:bg-gray-900/50 resize-none"
                                 />
                             </div>
                         </div>
@@ -358,7 +281,7 @@ export default function CuratorEditorView({
                                 </div>
                                 <div className="text-xs font-mono whitespace-pre-wrap mb-3 dark:text-red-200">{auditReport}</div>
                                 <button
-                                    onClick={() => handleRegenerateWithAudit(auditReport)}
+                                    onClick={() => onRegenerateWithAudit(auditReport)}
                                     className="w-full py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
                                 >
                                     Aplicar Correcciones

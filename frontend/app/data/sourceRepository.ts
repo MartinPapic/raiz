@@ -5,6 +5,7 @@ export interface Source {
     name: string;
     url: string;
     feed_url: string;
+    type?: 'rss' | 'scraping';
 }
 
 export const sourceRepository = {

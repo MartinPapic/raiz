@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import timedelta
+from datetime import timedelta, datetime
 import os
 import asyncio
 import sys
@@ -21,6 +21,7 @@ from app.models import User, Article, Source, KnowledgeItem
 from app.auth import verify_password, create_access_token, get_current_user, get_optional_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 from app.services.ingestion import parse_rss_feed
 from app.services.rag import search_similar
+from app.services.scheduler import start_scheduler, stop_scheduler, get_scheduler_status, run_ingestion_job
 
 load_dotenv()
 
@@ -38,6 +39,11 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     create_db_and_tables()
+    start_scheduler()
+
+@app.on_event("shutdown")
+def on_shutdown():
+    stop_scheduler()
 
 @app.get("/")
 def read_root():
@@ -183,6 +189,7 @@ class ArticleUpdate(BaseModel):
     title: str
     summary: str
     status: str
+    url: Optional[str] = None
 
 @app.put("/articles/{article_id}", response_model=Article)
 def update_article(article_id: int, article_update: ArticleUpdate, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
@@ -193,6 +200,8 @@ def update_article(article_id: int, article_update: ArticleUpdate, session: Sess
     article.title = article_update.title
     article.summary = article_update.summary
     article.status = article_update.status
+    if article_update.url is not None:
+        article.url = article_update.url
     
     session.add(article)
     session.commit()
@@ -270,6 +279,29 @@ def get_successful_history(session: Session = Depends(get_session)):
 
 # --- Article Actions ---
 
+class ArticleCreate(BaseModel):
+    title: str
+    content: str
+    source: Optional[str] = "Manual"
+    status: Optional[str] = "draft"
+
+@app.post("/articles", response_model=Article)
+def create_article(article_create: ArticleCreate, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    new_article = Article(
+        title=article_create.title,
+        content=article_create.content,
+        source=article_create.source or "Manual",
+        status=article_create.status or "draft",
+        url="", # Manual articles might not have a URL
+        created_at=datetime.utcnow(),
+        published_at=datetime.utcnow() if article_create.status == "published" else None,
+        summary=article_create.content[:200] + "..." if len(article_create.content) > 200 else article_create.content
+    )
+    session.add(new_article)
+    session.commit()
+    session.refresh(new_article)
+    return new_article
+
 @app.delete("/articles/{article_id}")
 def delete_article(article_id: int, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     article = session.get(Article, article_id)
@@ -279,8 +311,11 @@ def delete_article(article_id: int, session: Session = Depends(get_session), cur
     session.commit()
     return {"ok": True}
 
+class RegenerateRequest(BaseModel):
+    instruction: Optional[str] = None
+
 @app.post("/articles/{article_id}/regenerate")
-def regenerate_article(article_id: int, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+def regenerate_article(article_id: int, request: RegenerateRequest = RegenerateRequest(), session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
     article = session.get(Article, article_id)
     if not article:
         raise HTTPException(status_code=404, detail="Article not found")
@@ -292,7 +327,7 @@ def regenerate_article(article_id: int, session: Session = Depends(get_session),
     from app.services.llm import generate_article_content
     
     # Use current content as source for regeneration
-    generated_data = generate_article_content(article.title, article.summary or article.content)
+    generated_data = generate_article_content(article.title, article.summary or article.content, instruction=request.instruction)
     
     article.title = generated_data['title']
     article.content = generated_data['content']
@@ -413,3 +448,33 @@ def get_knowledge_base_suggestions(tags: str = "", query: str = "", session: Ses
             continue
             
     return suggestions
+
+# --- Scheduler Endpoints ---
+
+@app.get("/scheduler/status")
+def scheduler_status(current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    return get_scheduler_status()
+
+@app.post("/scheduler/start")
+def scheduler_start(current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    start_scheduler()
+    return {"message": "Scheduler started"}
+
+@app.post("/scheduler/stop")
+def scheduler_stop(current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    stop_scheduler()
+    return {"message": "Scheduler stopped"}
+
+@app.post("/scheduler/run-now")
+def scheduler_run_now(current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    # Run in background
+    run_ingestion_job()
+    return {"message": "Ingestion job triggered"}

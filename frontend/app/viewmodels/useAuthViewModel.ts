@@ -42,6 +42,16 @@ export function useAuthViewModel() {
         }
     };
 
+    const register = async (username: string, password: string) => {
+        try {
+            await authRepository.register(username, password);
+            return { success: true };
+        } catch (error: any) {
+            console.error(error);
+            return { success: false, error: error.message || 'Registration failed' };
+        }
+    };
+
     const logout = () => {
         localStorage.removeItem('token');
         setUser(null);
@@ -52,6 +62,7 @@ export function useAuthViewModel() {
         user,
         loading,
         login,
+        register,
         logout,
     };
 }
