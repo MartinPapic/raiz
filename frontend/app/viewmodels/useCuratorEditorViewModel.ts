@@ -73,7 +73,21 @@ export function useCuratorEditorViewModel(articleId: number) {
             const token = localStorage.getItem('token') || '';
             const newSummary = content.length > 200 ? content.substring(0, 200) + '...' : content;
             const updatedArticle = { ...article, title, content, summary: newSummary, tags, status };
+
+            // Update locally first
             await articleRepository.update(updatedArticle, token);
+
+            // AUTO-PUSH: If status is 'published', push to Sanity
+            if (status === 'published') {
+                try {
+                    await articleRepository.pushToSanity(updatedArticle, token);
+                    console.log('Auto-pushed to Sanity');
+                } catch (pushError) {
+                    console.error('Auto-push to Sanity failed:', pushError);
+                    alert('Se guardó localmente, pero falló el envío a Sanity. Intenta "Enviar a Sanity" desde el tablero.');
+                }
+            }
+
             router.push('/curator');
         } catch (error) {
             console.error('Error saving article:', error);
@@ -93,7 +107,7 @@ export function useCuratorEditorViewModel(articleId: number) {
         setIsRegenerating(true);
         try {
             const token = localStorage.getItem('token') || '';
-            const regenerated = await articleRepository.regenerate(article.id, token, regenerateInstruction);
+            const regenerated = await articleRepository.regenerate(article.id as number, token, regenerateInstruction);
 
             setTitle(regenerated.title);
             setContent(regenerated.content || regenerated.summary || '');
@@ -111,7 +125,7 @@ export function useCuratorEditorViewModel(articleId: number) {
         setIsRefining(true);
         try {
             const token = localStorage.getItem('token') || '';
-            const refinedContent = await articleRepository.refine(article.id, content, instruction, token);
+            const refinedContent = await articleRepository.refine(article.id as number, content, instruction, token);
             setContent(refinedContent);
             setShowRefineMenu(false);
             setCustomInstruction('');
@@ -129,7 +143,7 @@ export function useCuratorEditorViewModel(articleId: number) {
         setIsScraping(true);
         try {
             const token = localStorage.getItem('token') || '';
-            const scraped = await articleRepository.scrape(article.id, token);
+            const scraped = await articleRepository.scrape(article.id as number, token);
             setOriginalContent(scraped.original_content || '');
         } catch (error) {
             console.error('Error scraping:', error);
@@ -144,7 +158,7 @@ export function useCuratorEditorViewModel(articleId: number) {
         setIsAuditing(true);
         try {
             const token = localStorage.getItem('token') || '';
-            const report = await articleRepository.audit(article.id, token);
+            const report = await articleRepository.audit(article.id as number, token);
             setAuditReport(report);
         } catch (error) {
             console.error('Error auditing:', error);
@@ -160,7 +174,7 @@ export function useCuratorEditorViewModel(articleId: number) {
         try {
             const token = localStorage.getItem('token') || '';
             const instruction = `Corrige el siguiente artículo basándote ESTRICTAMENTE en los errores detectados en este reporte de auditoría. Si el reporte dice "sin errores", mejora el estilo general.\n\nREPORTE DE AUDITORÍA:\n${report}`;
-            const refinedContent = await articleRepository.refine(article.id, content, instruction, token);
+            const refinedContent = await articleRepository.refine(article.id as number, content, instruction, token);
             setContent(refinedContent);
         } catch (error) {
             console.error('Error refining with audit:', error);
@@ -175,7 +189,7 @@ export function useCuratorEditorViewModel(articleId: number) {
         setIsAddingToKB(true);
         try {
             const token = localStorage.getItem('token') || '';
-            await articleRepository.addToKnowledgeBase(content, tags, article.id, token);
+            await articleRepository.addToKnowledgeBase(content, tags, article.id as number, token);
             alert('Añadido a la base de conocimientos correctamente');
         } catch (error) {
             console.error('Error adding to KB:', error);

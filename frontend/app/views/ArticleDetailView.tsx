@@ -7,21 +7,35 @@ import { articleRepository } from '../data/articleRepository';
 import { useAuthViewModel } from '../viewmodels/useAuthViewModel';
 
 interface ArticleDetailViewProps {
-    articleId: number;
+    articleId?: number;
+    article?: Article;
 }
 
-export default function ArticleDetailView({ articleId }: ArticleDetailViewProps) {
-    const [article, setArticle] = useState<Article | null>(null);
-    const [loading, setLoading] = useState(true);
+export default function ArticleDetailView({ articleId, article: preFetchedArticle }: ArticleDetailViewProps) {
+    const [fetchedArticle, setFetchedArticle] = useState<Article | null>(null);
+    const [loading, setLoading] = useState(!preFetchedArticle);
     const [error, setError] = useState('');
     const { user } = useAuthViewModel();
     const router = useRouter();
 
+    const displayArticle = preFetchedArticle || fetchedArticle;
+
     useEffect(() => {
+        if (preFetchedArticle) {
+            setLoading(false);
+            return;
+        }
+
+        if (!articleId) {
+            setLoading(false);
+            return;
+        }
+
         const fetchArticle = async () => {
+            setLoading(true);
             try {
                 const data = await articleRepository.getById(articleId);
-                setArticle(data);
+                setFetchedArticle(data);
             } catch (err) {
                 console.error('Error fetching article:', err);
                 setError('Error al cargar el artículo');
@@ -31,10 +45,13 @@ export default function ArticleDetailView({ articleId }: ArticleDetailViewProps)
         };
 
         fetchArticle();
-    }, [articleId]);
+    }, [articleId, preFetchedArticle]);
 
     if (loading) return <div className="p-8 text-center">Cargando...</div>;
-    if (error || !article) return <div className="p-8 text-center text-red-500">{error || 'Artículo no encontrado'}</div>;
+    if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
+    if (!displayArticle) return <div className="p-8 text-center text-red-500">Artículo no encontrado</div>;
+
+    const article = displayArticle;
 
     return (
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -46,6 +63,16 @@ export default function ArticleDetailView({ articleId }: ArticleDetailViewProps)
             </button>
 
             <article className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                {article.main_image && (
+                    <div className="w-full h-64 md:h-96 relative">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={article.main_image}
+                            alt={article.title}
+                            className="w-full h-full object-cover"
+                        />
+                    </div>
+                )}
                 <div className="p-8">
                     <div className="flex items-center gap-4 mb-6">
                         <span className="text-sm font-bold text-green-600 dark:text-green-400 uppercase tracking-wider">
@@ -60,6 +87,16 @@ export default function ArticleDetailView({ articleId }: ArticleDetailViewProps)
                         {article.status === 'draft' && (
                             <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
                                 Borrador
+                            </span>
+                        )}
+                        {typeof article.author === 'string' && article.author && (
+                            <span className="text-sm text-gray-500 dark:text-gray-400 italic">
+                                Por {article.author}
+                            </span>
+                        )}
+                        {typeof article.author === 'object' && article.author?.name && (
+                            <span className="text-sm text-gray-500 dark:text-gray-400 italic">
+                                Por {article.author.name}
                             </span>
                         )}
                     </div>

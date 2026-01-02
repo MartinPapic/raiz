@@ -1,5 +1,5 @@
 export interface Article {
-  id: number;
+  id: number | string;
   title: string;
   content: string;
   url: string;
@@ -10,6 +10,9 @@ export interface Article {
   tags?: string; // Comma-separated
   status: 'draft' | 'published' | 'archived';
   created_at: string;
+  author?: string | { name: string };
+  main_image?: string;
+  featured?: boolean;
 }
 
 export interface KnowledgeItem {
@@ -21,13 +24,16 @@ export interface KnowledgeItem {
 }
 
 export interface SearchResult {
-  id: number;
+  id: number | string;
   score: number;
   metadata: {
     title: string;
     url: string;
     source: string;
-    published_at: string;
+    published_at?: string;
+    // Sanity Fields
+    author?: string | { name: string };
+    main_image?: string;
     content_snippet: string;
   };
   content_snippet: string;

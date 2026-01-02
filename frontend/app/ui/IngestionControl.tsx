@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getAuthToken } from '../utils/clientAuth';
 
 interface IngestionControlProps {
     onIngestComplete: () => void;
@@ -26,7 +27,7 @@ export default function IngestionControl({ onIngestComplete, prefill }: Ingestio
         setMessage('');
 
         try {
-            const token = localStorage.getItem('token');
+            const token = await getAuthToken();
             const headers: any = { 'Content-Type': 'application/json' };
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;

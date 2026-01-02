@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useArticlesViewModel } from './useArticlesViewModel';
 import { useSourceViewModel } from './useSourceViewModel';
 import { useAuthViewModel } from './useAuthViewModel';
 import { articleRepository } from '../data/articleRepository';
 import { Article } from '../model';
+import { getAuthToken } from '../utils/clientAuth';
 
 export function useCuratorViewModel() {
     const router = useRouter();
@@ -20,7 +21,7 @@ export function useCuratorViewModel() {
     }, [user, authLoading, router]);
 
     // Core State
-    const [filterStatus, setFilterStatus] = useState<'draft' | 'published' | 'archived' | 'all'>('draft');
+    const [filterStatus, setFilterStatus] = useState<'draft' | 'published' | 'archived' | 'all'>('all');
     const effectiveCuratorMode = true;
 
     // Composition of other ViewModels
@@ -38,7 +39,7 @@ export function useCuratorViewModel() {
     // UI State
     const [showSourceManager, setShowSourceManager] = useState(false);
     const [ingestionPrefill, setIngestionPrefill] = useState<{ url: string; source: string } | null>(null);
-    const [viewMode, setViewMode] = useState<'list' | 'columns'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'columns'>('columns');
 
     // Filter State
     const [filterText, setFilterText] = useState('');
@@ -91,7 +92,7 @@ export function useCuratorViewModel() {
     const handleDeleteArticle = async (id: number) => {
         if (!confirm('¿Estás seguro de eliminar este artículo?')) return;
         try {
-            const token = localStorage.getItem('token') || '';
+            const token = await getAuthToken();
             await articleRepository.delete(id, token);
             refreshArticles();
         } catch (error) {
@@ -101,7 +102,7 @@ export function useCuratorViewModel() {
 
     const handleArchiveArticle = async (article: Article) => {
         try {
-            const token = localStorage.getItem('token') || '';
+            const token = await getAuthToken();
             await articleRepository.update({ ...article, status: 'archived' }, token);
             refreshArticles();
         } catch (error) {
@@ -112,7 +113,7 @@ export function useCuratorViewModel() {
     const handleScrapeArticle = async (article: Article) => {
         if (!confirm('Esto reemplazará el contenido actual con el texto original. ¿Continuar?')) return;
         try {
-            const token = localStorage.getItem('token') || '';
+            const token = await getAuthToken();
             await articleRepository.scrape(article.id, token);
             refreshArticles();
         } catch (error: any) {
@@ -142,7 +143,7 @@ export function useCuratorViewModel() {
     const handleBulkDelete = async () => {
         if (!confirm(`¿Estás seguro de eliminar ${selectedArticleIds.size} artículos?`)) return;
 
-        const token = localStorage.getItem('token') || '';
+        const token = await getAuthToken();
         let successCount = 0;
 
         for (const id of selectedArticleIds) {
@@ -162,7 +163,7 @@ export function useCuratorViewModel() {
     };
 
     const handleBulkArchive = async () => {
-        const token = localStorage.getItem('token') || '';
+        const token = await getAuthToken();
         let successCount = 0;
 
         for (const id of selectedArticleIds) {
@@ -191,7 +192,7 @@ export function useCuratorViewModel() {
         }
         setIsCreating(true);
         try {
-            const token = localStorage.getItem('token') || '';
+            const token = await getAuthToken();
             await articleRepository.create(newArticleTitle, newArticleContent, newArticleSource || 'Manual', token);
             refreshArticles();
             setShowNewArticleModal(false);
@@ -214,7 +215,7 @@ export function useCuratorViewModel() {
         }
         setIsCreating(true);
         try {
-            const token = localStorage.getItem('token') || '';
+            const token = await getAuthToken();
             const article = await articleRepository.create('Borrador desde URL', '', 'Web', token);
             const articleWithUrl = { ...article, url: newArticleUrl };
             await articleRepository.update(articleWithUrl, token);
@@ -231,6 +232,112 @@ export function useCuratorViewModel() {
             setIsCreating(false);
         }
     };
+
+    const handleSanityPush = async (article: Article) => {
+        if (!confirm(`¿Enviar "${article.title}" al CMS(Sanity)?`)) return;
+        try {
+            const token = await getAuthToken();
+
+            // 1. Push to Sanity API
+            await articleRepository.pushToSanity(article, token);
+
+            // 2. Mark as Published locally to remove from "Borradores"
+            await articleRepository.update({ ...article, status: 'published' }, token);
+
+            refreshArticles();
+            alert('✅ Enviado a Sanity Studio! Ahora puedes editarlo allí.');
+        } catch (error: any) {
+            console.error('Sanity Push Error:', error);
+            alert(`Error enviando a Sanity: ${error.message}`);
+        }
+    };
+
+    const handleSyncSanity = async (silent: boolean = false) => {
+        if (!silent && !confirm('Esto sincronizará artículos entre Sanity y Local (Bidireccional). \n\n1. Importará de Sanity -> Local (Validados)\n2. Exportará de Local (Validados) -> Sanity\n\n¿Continuar?')) return;
+
+        try {
+            const token = await getAuthToken();
+            const sanityArticles = await articleRepository.importFromSanity();
+            let importCount = 0;
+            let exportCount = 0;
+
+            // 1. IMPORT: Sanity -> Local
+            // Sanity is the source of truth for its own content.
+            for (const sArticle of sanityArticles) {
+                // Check if exists locally by Slug match (approximate) or Title
+                const exists = articles.some(a => a.url === sArticle.slug || a.title === sArticle.title);
+
+                if (!exists) {
+                    try {
+                        const newArticle = await articleRepository.create(
+                            sArticle.title,
+                            sArticle.body ? 'Importado de Sanity' : '',
+                            'Sanity Import',
+                            token
+                        );
+
+                        await articleRepository.update({
+                            ...newArticle,
+                            summary: sArticle.lead,
+                            url: sArticle.slug,
+                            status: 'published',
+                            published_at: sArticle.publishedAt,
+                            featured: false
+                        }, token);
+
+                        importCount++;
+                    } catch (importErr) {
+                        console.error(`Failed to import article ${sArticle.title}:`, importErr);
+                        // Continue to next article
+                    }
+                }
+            }
+
+            // 2. EXPORT: Local (Published) -> Sanity
+            // Only export if we verified Sanity state first (sanityArticles valid)
+            if (sanityArticles) {
+                // Find local published articles that are NOT in Sanity
+                const pendingExport = articles.filter(a =>
+                    a.status === 'published' &&
+                    !sanityArticles.some((sa: any) => sa.slug === a.url || sa.title === a.title)
+                );
+
+                for (const lArticle of pendingExport) {
+                    try {
+                        console.log(`Auto-exporting to Sanity: ${lArticle.title}`);
+                        await articleRepository.pushToSanity(lArticle, token);
+                        exportCount++;
+                    } catch (err) {
+                        console.error(`Failed to auto-export article ${lArticle.id}:`, err);
+                    }
+                }
+            }
+
+            if (importCount > 0 || exportCount > 0) {
+                refreshArticles();
+                if (!silent) alert(`✅ Sincronización Completada:\n⬇️ Importados: ${importCount}\n⬆️ Exportados: ${exportCount}`);
+            } else {
+                if (!silent) alert('Todo sincronizado. No se encontraron cambios.');
+            }
+
+        } catch (error: any) {
+            console.error('Sync Error:', error);
+            if (!silent) alert(`Error sincronizando: ${error.message}`);
+        }
+    };
+
+    // Auto-sync on mount (ONCE)
+    const hasAutoSynced = useRef(false);
+
+    useEffect(() => {
+        // Run once when articles are loaded and user is admin
+        if (!hasAutoSynced.current && !articlesLoading && user?.role === 'admin' && articles.length > 0) {
+            console.log('Running auto-sync...');
+            hasAutoSynced.current = true;
+            // We use a small timeout to let the UI settle
+            setTimeout(() => handleSyncSanity(true), 1000);
+        }
+    }, [articlesLoading, user?.role, articles.length]);
 
     return {
         // Auth & Loading
@@ -292,6 +399,8 @@ export function useCuratorViewModel() {
         handleBulkArchive,
         handleCreateArticle,
         handleIngestArticle,
-        logout: useAuthViewModel().logout // Re-export logout
+        handleSanityPush,
+        handleSyncSanity,
+        logout: useAuthViewModel().logout
     };
 }

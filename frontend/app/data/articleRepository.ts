@@ -29,6 +29,33 @@ export const articleRepository = {
     scrape: async (id: number, token: string): Promise<Article> => {
         return api.post(`/articles/${id}/scrape`, {}, token);
     },
+
+    pushToSanity: async (article: Article, token: string): Promise<{ success: boolean; sanityId: string }> => {
+        // 1. Post to local API route (which has the SANITY_API_TOKEN)
+        const response = await fetch('/api/sanity/create-draft', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                title: article.title,
+                content: article.content, // HTML/Text content
+                lead: article.summary,
+                source: article.source,
+                url: article.url
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to push to Sanity');
+        }
+
+        // 2. We do NOT update local status here to avoid circular dep, 
+        // the ViewModel should handle the local update or the user manually refreshes.
+
+        return response.json();
+    },
     refine: async (id: number, content: string, instruction: string, token: string): Promise<string> => {
         const response = await api.post(`/articles/${id}/refine`, { content, instruction }, token);
         return response.refined_content;
@@ -48,5 +75,14 @@ export const articleRepository = {
         if (query) params.append('query', query);
 
         return api.get(`/knowledge-base/suggestions?${params.toString()}`, token);
+    },
+
+    importFromSanity: async (): Promise<any[]> => {
+        const response = await fetch('/api/sanity/import-articles');
+        const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to import from Sanity');
+        }
+        return data.articles;
     }
 };

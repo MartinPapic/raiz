@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { sourceRepository, Source } from '../data/sourceRepository';
+import { getAuthToken } from '../utils/clientAuth';
 
 export function useSourceViewModel() {
     const [sources, setSources] = useState<Source[]>([]);
@@ -43,7 +44,7 @@ export function useSourceViewModel() {
     const addSource = async (source: Omit<Source, 'id'>) => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = await getAuthToken();
             if (!token) throw new Error('No token');
             await sourceRepository.create(source, token);
             fetchSources();
@@ -58,7 +59,7 @@ export function useSourceViewModel() {
 
     const deleteSource = async (id: number) => {
         try {
-            const token = localStorage.getItem('token');
+            const token = await getAuthToken();
             if (!token) throw new Error('No token');
             await sourceRepository.delete(id, token);
             fetchSources();

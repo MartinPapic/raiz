@@ -1,0 +1,38 @@
+[dotenv@17.2.3] injecting env (11) from .env.local -- tip: ÔÜÖ´©Å  specify custom .env file path with { path: '/custom/path/.env' }
+--- Testing AuthClient Instantiation ---
+--- AuthClient Inspection ---
+AuthClient keys: [
+  'proxyFetchers',
+  'fetch',
+  'jwksCache',
+  'allowInsecureRequests',
+  'httpTimeout',
+  'httpOptions',
+  'transactionStore',
+  'sessionStore',
+  'domain',
+  'clientMetadata',
+  'dpopOptions',
+  'clientSecret',
+  'authorizationParameters',
+  'pushedAuthorizationRequests',
+  'clientAssertionSigningKey',
+  'clientAssertionSigningAlg',
+  'appBaseUrl',
+  'signInReturnToPath',
+  'logoutStrategy',
+  'includeIdTokenHintInOIDCLogoutUrl',
+  'beforeSessionSaved',
+  'onCallback',
+  'routes',
+  'enableAccessTokenEndpoint',
+  'noContentProfileResponseWhenUnauthenticated',
+  'enableConnectAccountEndpoint',
+  'useDPoP'
+]
+AuthClient.routes: undefined
+CRITICAL: auth0.routes is UNDEFINED
+--- Testing Handler Invocation ---
+Handler crashed: TypeError: Cannot destructure property 'pathname' of 'req.nextUrl' as it is undefined.
+    at AuthClient.handler (file:///C:/Users/mapap/Desktop/raiz/raiz/frontend/node_modules/@auth0/nextjs-auth0/dist/server/auth-client.js:148:15)
+    at file:///C:/Users/mapap/Desktop/raiz/raiz/frontend/debug_auth0.mjs:43:38

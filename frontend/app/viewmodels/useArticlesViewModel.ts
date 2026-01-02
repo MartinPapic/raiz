@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Article } from '../model';
 import { articleRepository } from '../data/articleRepository';
+import { getAuthToken } from '../utils/clientAuth';
 
 export function useArticlesViewModel(isCuratorMode: boolean, filterStatus: string) {
     const [articles, setArticles] = useState<Article[]>([]);
@@ -18,7 +19,7 @@ export function useArticlesViewModel(isCuratorMode: boolean, filterStatus: strin
         setLoading(true);
         try {
             const status = isCuratorMode ? filterStatus : 'published';
-            const token = localStorage.getItem('token') || '';
+            const token = await getAuthToken();
             const data = await articleRepository.getAll(status, token);
 
             // Should featured be a separate call or just the top articles?

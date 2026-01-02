@@ -110,9 +110,17 @@ def ingest_feed(request: IngestRequest, current_user: User = Depends(get_current
 
 @app.get("/articles", response_model=List[Article])
 def get_articles(status: str = "published", session: Session = Depends(get_session), current_user: User = Depends(get_optional_current_user)):
+    with open("backend_debug.log", "a") as f:
+        f.write(f"DEBUG: get_articles status={status}\n")
+        if current_user:
+            f.write(f"DEBUG: User: {current_user.username}, Role: {current_user.role}\n")
+        else:
+            f.write("DEBUG: No current user\n")
+    
     # Access Control Logic for List
     if status == "all":
         if not current_user or current_user.role != "admin":
+            return [] # Or raise 403
             return [] # Or raise 403
         articles = session.exec(select(Article)).all()
         return articles

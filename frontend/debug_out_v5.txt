@@ -1,0 +1,46 @@
+[dotenv@17.2.3] injecting env (11) from .env.local -- tip: ­ƒùé´©Å backup and recover secrets: https://dotenvx.com/ops
+--- Testing AuthClient Instantiation ---
+--- AuthClient Inspection ---
+AuthClient keys: [
+  'proxyFetchers',
+  'fetch',
+  'jwksCache',
+  'allowInsecureRequests',
+  'httpTimeout',
+  'httpOptions',
+  'transactionStore',
+  'sessionStore',
+  'domain',
+  'clientMetadata',
+  'dpopOptions',
+  'clientSecret',
+  'authorizationParameters',
+  'pushedAuthorizationRequests',
+  'clientAssertionSigningKey',
+  'clientAssertionSigningAlg',
+  'appBaseUrl',
+  'signInReturnToPath',
+  'logoutStrategy',
+  'includeIdTokenHintInOIDCLogoutUrl',
+  'beforeSessionSaved',
+  'onCallback',
+  'routes',
+  'enableAccessTokenEndpoint',
+  'noContentProfileResponseWhenUnauthenticated',
+  'enableConnectAccountEndpoint',
+  'useDPoP'
+]
+AuthClient.routes: {
+  login: '/api/auth/login',
+  callback: '/api/auth/callback',
+  postLogoutRedirect: '/'
+}
+Routes found: {
+  "login": "/api/auth/login",
+  "callback": "/api/auth/callback",
+  "postLogoutRedirect": "/"
+}
+--- Testing Handler Invocation ---
+Handler crashed: TypeError: Cannot read properties of undefined (reading 'get')
+    at AuthClient.handler (file:///C:/Users/mapap/Desktop/raiz/raiz/frontend/node_modules/@auth0/nextjs-auth0/dist/server/auth-client.js:196:53)
+    at file:///C:/Users/mapap/Desktop/raiz/raiz/frontend/debug_auth0.mjs:64:38

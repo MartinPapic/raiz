@@ -41,7 +41,10 @@ export default function ArticleEditorModal({
     onClearAudit
 }: ArticleEditorModalProps) {
     const [title, setTitle] = useState(article.title);
-    const [content, setContent] = useState(article.content || article.summary || '');
+    const [content, setContent] = useState(article.content || ''); // Prefer raw content
+    const [summary, setSummary] = useState(article.summary || '');
+    const [slug, setSlug] = useState(article.url || '');
+    const [featured, setFeatured] = useState(article.featured || false);
     const [originalContent, setOriginalContent] = useState(article.original_content || '');
     const [tags, setTags] = useState(article.tags || '');
     const [status, setStatus] = useState(article.status);
@@ -75,18 +78,26 @@ export default function ArticleEditorModal({
     // Update local state if article prop changes (e.g. after regeneration)
     useEffect(() => {
         setTitle(article.title);
-        setContent(article.content || article.summary || '');
+        setContent(article.content || '');
+        setSummary(article.summary || '');
+        setSlug(article.url || '');
+        setFeatured(article.featured || false);
         setOriginalContent(article.original_content || '');
         setTags(article.tags || '');
         setStatus(article.status);
     }, [article]);
 
     const handleSave = () => {
-        // We save the full content. The backend handles summary generation if needed, 
-        // or we can just send content and let backend truncate for summary.
-        // For now, we update both content and summary (truncated)
-        const newSummary = content.length > 200 ? content.substring(0, 200) + '...' : content;
-        onSave({ ...article, title, content, summary: newSummary, tags, status });
+        onSave({
+            ...article,
+            title,
+            content,
+            summary,
+            url: slug,
+            featured,
+            tags,
+            status
+        });
     };
 
     const handleAddToKB = async () => {
@@ -201,115 +212,73 @@ export default function ArticleEditorModal({
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1 dark:text-gray-300">Tags (separados por coma)</label>
-                        <div className="flex gap-2">
+                        <label className="block text-sm font-medium mb-1 dark:text-gray-300">Slug (URL)</label>
+                        <input
+                            type="text"
+                            value={slug}
+                            onChange={(e) => setSlug(e.target.value)}
+                            placeholder="ej: mi-articulo-titulo"
+                            className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                        />
+                    </div>
+                </div>
+
+                <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Bajada / Resumen (Lead)</label>
+                    <textarea
+                        value={summary}
+                        onChange={(e) => setSummary(e.target.value)}
+                        rows={3}
+                        className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white resize-none"
+                    />
+                </div>
+
+                <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1 dark:text-gray-300">Estado</label>
+                        <select
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value as any)}
+                            className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                        >
+                            <option value="draft">Borrador (Draft)</option>
+                            <option value="published">Validado</option>
+                            <option value="archived">Archivado (Archived)</option>
+                        </select>
+                    </div>
+                    <div className="flex items-end mb-2">
+                        <label className="flex items-center space-x-2 cursor-pointer">
                             <input
-                                type="text"
-                                value={tags}
-                                onChange={(e) => setTags(e.target.value)}
-                                placeholder="ej: política, economía, internacional"
-                                className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                                type="checkbox"
+                                checked={featured}
+                                onChange={(e) => setFeatured(e.target.checked)}
+                                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
                             />
-                            <button
-                                type="button"
-                                onClick={handleAddToKB}
-                                disabled={isAddingToKB}
-                                className="px-3 py-2 text-sm bg-blue-100 text-blue-800 border border-blue-200 rounded hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
-                                title="Agregar contenido y tags a la Base de Conocimientos"
-                            >
-                                {isAddingToKB ? '...' : '📚 Agregar a KB'}
-                            </button>
-                        </div>
+                            <span className="text-sm font-medium dark:text-gray-300">Destacado de Portada (Hero)</span>
+                        </label>
                     </div>
                 </div>
 
-                <div className={`grid grid-cols-1 gap-4 flex-1 mb-4 ${auditReport ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
-                    {/* Left Column: Original Content */}
-                    <div className="flex flex-col h-full">
-                        <div className="flex justify-between items-center mb-1">
-                            <label className="block text-sm font-medium dark:text-gray-300">Original (Referencia)</label>
-                            <button
-                                type="button"
-                                onClick={handleScrape}
-                                disabled={isScraping}
-                                className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 flex items-center gap-1"
-                                title="Descargar contenido desde la URL"
-                            >
-                                {isScraping ? 'Descargando...' : '📥 Traer de URL'}
-                            </button>
-                        </div>
-                        <textarea
-                            value={originalContent}
-                            readOnly
-                            placeholder="El contenido original aparecerá aquí si está disponible..."
-                            className="w-full h-full min-h-[400px] px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 font-mono text-sm bg-gray-50 dark:bg-gray-900/50 resize-none"
+                <div className="mb-4">
+                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Tags (separados por coma)</label>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={tags}
+                            onChange={(e) => setTags(e.target.value)}
+                            placeholder="ej: política, economía, internacional"
+                            className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                         />
+                        <button
+                            type="button"
+                            onClick={handleAddToKB}
+                            disabled={isAddingToKB}
+                            className="px-3 py-2 text-sm bg-blue-100 text-blue-800 border border-blue-200 rounded hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
+                            title="Agregar contenido y tags a la Base de Conocimientos"
+                        >
+                            {isAddingToKB ? '...' : '📚 Agregar a KB'}
+                        </button>
                     </div>
-
-                    {/* Middle Column: Draft Content */}
-                    <div className="flex flex-col h-full">
-                        <div className="flex justify-between items-center mb-1">
-                            <label className="block text-sm font-medium dark:text-gray-300">Borrador (Editable)</label>
-                            <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleRecoverOriginal}
-                                    disabled={!originalContent}
-                                    className="text-xs px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50"
-                                    title="Copiar texto original al borrador"
-                                >
-                                    ↺ Recuperar Original
-                                </button>
-                            </div>
-                        </div>
-                        <textarea
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            className="w-full h-full min-h-[400px] px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white font-mono text-sm resize-none"
-                        />
-                    </div>
-
-                    {/* Right Column: Audit Report (Conditional) */}
-                    {auditReport && (
-                        <div className="flex flex-col h-full border-l pl-4 dark:border-gray-700">
-                            <div className="flex justify-between items-center mb-1">
-                                <label className="block text-sm font-medium text-red-600 dark:text-red-400">📋 Reporte de Auditoría</label>
-                                <button
-                                    onClick={onClearAudit}
-                                    className="text-xs px-2 py-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                                >
-                                    ✕ Cerrar
-                                </button>
-                            </div>
-                            <div className="w-full h-full min-h-[400px] px-3 py-2 border rounded bg-red-50 dark:bg-red-900/20 dark:border-red-800/50 overflow-y-auto prose prose-sm dark:prose-invert max-w-none flex flex-col">
-                                <div className="whitespace-pre-wrap font-mono text-xs flex-1">
-                                    {auditReport}
-                                </div>
-                                <div className="mt-4 pt-4 border-t border-red-200 dark:border-red-800">
-                                    <button
-                                        onClick={() => onRegenerateWithAudit(auditReport)}
-                                        disabled={isRefining}
-                                        className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2 text-sm font-medium shadow-sm transition-colors"
-                                    >
-                                        {isRefining ? 'Aplicando correcciones...' : '✨ Regenerar aplicando correcciones'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="mb-6">
-                    <label className="block text-sm font-medium mb-1 dark:text-gray-300">Estado</label>
-                    <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value as any)}
-                        className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                    >
-                        <option value="draft">Borrador (Draft)</option>
-                        <option value="published">Validado</option>
-                        <option value="archived">Archivado (Archived)</option>
-                    </select>
                 </div>
 
                 {/* Knowledge Base Suggestions */}

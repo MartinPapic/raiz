@@ -15,7 +15,7 @@ export function useAuthViewModel() {
     // or by fetching from backend. For MVP, we'll default to 'user' or check specific email.
     const user: User | null = auth0User ? {
         username: auth0User.name || auth0User.email || 'User',
-        role: (auth0User.email === 'admin@example.com' || auth0User.email === 'ma.papic@duocuc.cl' || auth0User['https://raiz-api/roles']?.includes('admin')) ? 'admin' : 'user', // Temporary hardcoded admin for dev
+        role: (auth0User.email === 'admin@example.com' || auth0User.email === 'ma.papic@duocuc.cl' || auth0User.email === 'mapapicv@gmail.com' || auth0User['https://raiz-api/roles']?.includes('admin')) ? 'admin' : 'user', // Temporary hardcoded admin for dev
         picture: auth0User.picture || undefined
     } : null;
 

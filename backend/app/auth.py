@@ -9,13 +9,16 @@ from app.models import User
 from app.auth0 import get_auth0_user
 
 # Replaced OAuth2PasswordBearer with HTTPBearer for Auth0
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(security), session: Session = Depends(get_session)):
     """
     Validates Auth0 token, gets user info, and syncs with local DB.
     """
     try:
+        if not creds:
+             print("DEBUG: No credentials provided to get_current_user")
+             
         # Validate token using the logic from auth0.py (or imported)
         payload = get_auth0_user(creds) # Synchronous call to validation logic
         print(f"DEBUG: Auth0 Payload: {payload}")
@@ -30,7 +33,7 @@ async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(securit
         auth0_roles = payload.get("https://raiz-api/roles", [])
         computed_role = "admin" if "admin" in auth0_roles else "user"
 
-        if email == "ma.papic@duocuc.cl":
+        if email == "ma.papic@duocuc.cl" or email == "mapapicv@gmail.com":
              computed_role = "admin"
 
         # Check if user exists
@@ -48,11 +51,16 @@ async def get_current_user(creds: HTTPAuthorizationCredentials = Depends(securit
             session.refresh(user)
         else:
             # Sync role if different (Auth0 is source of truth)
+            # Sync role if different (Auth0 is source of truth)
+            # BUT: Do not downgrade an admin to user automatically (allows manual overrides)
             if user.role != computed_role:
-                user.role = computed_role
-                session.add(user)
-                session.commit()
-                session.refresh(user)
+                if user.role == "admin" and computed_role == "user":
+                    print(f"DEBUG: Preserving local admin role for {user.username} despite Auth0 saying user.")
+                else:
+                    user.role = computed_role
+                    session.add(user)
+                    session.commit()
+                    session.refresh(user)
             
         return user
         

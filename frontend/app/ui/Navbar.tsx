@@ -44,6 +44,18 @@ export default function Navbar({ user, onLogout }: NavbarProps) {
                                     >
                                         Curador
                                     </Link>
+                                    <Link
+                                        href="/studio"
+                                        className="px-3 py-1 rounded-md text-sm font-medium bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-200 transition-colors"
+                                    >
+                                        📝 CMS
+                                    </Link>
+                                    <Link
+                                        href="/curator/layout-editor"
+                                        className="px-3 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 transition-colors"
+                                    >
+                                        🎨 Portada
+                                    </Link>
                                 </>
                             )}
 

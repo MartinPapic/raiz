@@ -74,6 +74,7 @@ export default function CuratorView() {
         handleBulkArchive,
         handleCreateArticle,
         handleIngestArticle,
+        handleSanityPush,
         logout
     } = useCuratorViewModel();
 
@@ -161,22 +162,35 @@ export default function CuratorView() {
                             <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                                 <button
                                     onClick={() => setViewMode('list')}
-                                    className={`px-3 py-1 text-sm rounded-md transition-all ${viewMode === 'list'
-                                        ? 'bg-white dark:bg-gray-600 shadow text-gray-900 dark:text-white'
+                                    className={`p-2 rounded-md transition-all flex items-center justify-center ${viewMode === 'list'
+                                        ? 'bg-white dark:bg-gray-600 shadow text-green-600 dark:text-green-400'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                                    title="Vista de Lista"
                                 >
-                                    Lista
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="8" y1="6" x2="21" y2="6"></line>
+                                        <line x1="8" y1="12" x2="21" y2="12"></line>
+                                        <line x1="8" y1="18" x2="21" y2="18"></line>
+                                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                                    </svg>
                                 </button>
                                 <button
                                     onClick={() => {
                                         setViewMode('columns');
                                         setFilterStatus('all');
                                     }}
-                                    className={`px-3 py-1 text-sm rounded-md transition-all ${viewMode === 'columns'
-                                        ? 'bg-white dark:bg-gray-600 shadow text-gray-900 dark:text-white'
+                                    className={`p-2 rounded-md transition-all flex items-center justify-center ${viewMode === 'columns'
+                                        ? 'bg-white dark:bg-gray-600 shadow text-green-600 dark:text-green-400'
                                         : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                                    title="Vista de Columnas"
                                 >
-                                    Columnas
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                                        <line x1="15" y1="3" x2="15" y2="21"></line>
+                                    </svg>
                                 </button>
                             </div>
                         </div>
@@ -273,87 +287,90 @@ export default function CuratorView() {
                                     article={article}
                                     showEditButton={true}
                                     onEdit={() => router.push(`/curator/editor/${article.id}`)}
-                                    onDelete={() => handleDeleteArticle(article.id)}
+                                    onDelete={() => handleDeleteArticle(article.id as number)}
                                     onArchive={() => handleArchiveArticle(article)}
                                     onScrape={handleScrapeArticle}
-                                    isSelected={selectedArticleIds.has(article.id)}
-                                    onToggleSelect={handleToggleSelect}
+                                    isSelected={selectedArticleIds.has(article.id as number)}
+                                    onToggleSelect={(id) => handleToggleSelect(id as number)}
                                 />
                             ))}
                         </div>
                     ) : (
                         /* Columns View */
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-300px)] overflow-hidden">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-450px)] min-h-[500px] overflow-hidden">
                             {/* Draft Column */}
-                            <div className="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg p-4 h-full">
+                            <div className="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg p-4 h-full min-h-0">
                                 <h3 className="font-semibold mb-4 flex items-center justify-between text-gray-700 dark:text-gray-300">
                                     <span>Borradores</span>
                                     <span className="bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full text-xs">
                                         {displayedArticles.filter(a => a.status === 'draft').length}
                                     </span>
                                 </h3>
-                                <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                                <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                                     {displayedArticles.filter(a => a.status === 'draft').map(article => (
                                         <ArticleCard
                                             key={article.id}
                                             article={article}
                                             showEditButton={true}
                                             onEdit={() => router.push(`/curator/editor/${article.id}`)}
-                                            onDelete={() => handleDeleteArticle(article.id)}
+                                            onDelete={() => handleDeleteArticle(article.id as number)}
                                             onArchive={() => handleArchiveArticle(article)}
                                             onScrape={handleScrapeArticle}
-                                            isSelected={selectedArticleIds.has(article.id)}
-                                            onToggleSelect={handleToggleSelect}
+                                            onSanityPush={handleSanityPush}
+                                            isSelected={selectedArticleIds.has(article.id as number)}
+                                            onToggleSelect={(id) => handleToggleSelect(id as number)}
                                         />
                                     ))}
                                 </div>
                             </div>
 
                             {/* Published Column */}
-                            <div className="flex flex-col bg-green-50 dark:bg-green-900/20 rounded-lg p-4 h-full">
+                            <div className="flex flex-col bg-green-50 dark:bg-green-900/20 rounded-lg p-4 h-full min-h-0">
                                 <h3 className="font-semibold mb-4 flex items-center justify-between text-green-800 dark:text-green-300">
                                     <span>Validados</span>
                                     <span className="bg-green-100 dark:bg-green-800 px-2 py-0.5 rounded-full text-xs">
                                         {displayedArticles.filter(a => a.status === 'published').length}
                                     </span>
                                 </h3>
-                                <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                                <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-green-200 dark:scrollbar-thumb-green-800">
                                     {displayedArticles.filter(a => a.status === 'published').map(article => (
                                         <ArticleCard
                                             key={article.id}
                                             article={article}
                                             showEditButton={true}
                                             onEdit={() => router.push(`/curator/editor/${article.id}`)}
-                                            onDelete={() => handleDeleteArticle(article.id)}
+                                            onDelete={() => handleDeleteArticle(article.id as number)}
                                             onArchive={() => handleArchiveArticle(article)}
                                             onScrape={handleScrapeArticle}
-                                            isSelected={selectedArticleIds.has(article.id)}
-                                            onToggleSelect={handleToggleSelect}
+                                            onSanityPush={handleSanityPush}
+                                            isSelected={selectedArticleIds.has(article.id as number)}
+                                            onToggleSelect={(id) => handleToggleSelect(id as number)}
                                         />
                                     ))}
                                 </div>
                             </div>
 
                             {/* Archived Column */}
-                            <div className="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg p-4 h-full">
+                            <div className="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg p-4 h-full min-h-0">
                                 <h3 className="font-semibold mb-4 flex items-center justify-between text-gray-700 dark:text-gray-300">
                                     <span>Archivados</span>
                                     <span className="bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full text-xs">
                                         {displayedArticles.filter(a => a.status === 'archived').length}
                                     </span>
                                 </h3>
-                                <div className="flex-1 overflow-y-auto space-y-4 pr-2">
+                                <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                                     {displayedArticles.filter(a => a.status === 'archived').map(article => (
                                         <ArticleCard
                                             key={article.id}
                                             article={article}
                                             showEditButton={true}
                                             onEdit={() => router.push(`/curator/editor/${article.id}`)}
-                                            onDelete={() => handleDeleteArticle(article.id)}
+                                            onDelete={() => handleDeleteArticle(article.id as number)}
                                             onArchive={() => handleArchiveArticle(article)}
                                             onScrape={handleScrapeArticle}
-                                            isSelected={selectedArticleIds.has(article.id)}
-                                            onToggleSelect={handleToggleSelect}
+                                            onSanityPush={handleSanityPush}
+                                            isSelected={selectedArticleIds.has(article.id as number)}
+                                            onToggleSelect={(id) => handleToggleSelect(id as number)}
                                         />
                                     ))}
                                 </div>

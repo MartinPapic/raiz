@@ -1,0 +1,18 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Ôû▓ Next.js 16.0.5 (Turbopack)
+   - Local:         http://localhost:3000
+   - Network:       http://192.168.1.6:3000
+   - Environments: .env.local
+
+ Ô£ô Starting...
+ ÔÜá The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+C:\Users\mapap\Desktop\raiz\raiz\frontend\node_modules\next\dist\shared\lib\router\utils\sorted-routes.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+C:\Users\mapap\Desktop\raiz\raiz\frontend\node_modules\next\dist\server\lib\router-utils\setup-dev-bundler.js: Invalid source map. Only conformant source maps can be used to find the original code. Cause: Error: sourceMapURL could not be parsed
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'slug').
+    at ignore-listed frames
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[?25h

@@ -8,12 +8,14 @@ interface ArticleCardProps {
     onDelete?: (id: number) => void;
     onArchive?: (article: Article) => void;
     onScrape?: (article: Article) => void;
+    onSanityPush?: (article: Article) => void; // New prop for Sanity
     isSelected?: boolean;
     onToggleSelect?: (id: number) => void;
     highlight?: boolean;
+    compact?: boolean;
 }
 
-export default function ArticleCard({ article, showEditButton, onEdit, onDelete, onArchive, onScrape, isSelected, onToggleSelect, highlight }: ArticleCardProps) {
+export default function ArticleCard({ article, showEditButton, onEdit, onDelete, onArchive, onScrape, onSanityPush, isSelected, onToggleSelect, highlight, compact }: ArticleCardProps) {
     const title = article.title;
 
     const source = article.source;
@@ -28,6 +30,23 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
             timeZone: 'America/Santiago'
         })
         : 'Fecha desconocida';
+
+    if (compact) {
+        return (
+            <div className={`flex gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow`}>
+                <div className="w-24 h-24 shrink-0 rounded overflow-hidden bg-gray-200">
+                    {article.main_image && <img src={article.main_image} alt="" className="w-full h-full object-cover" />}
+                </div>
+                <div className="flex flex-col justify-center">
+                    <span className="text-[10px] font-bold text-green-600 uppercase tracking-wide mb-1">{source}</span>
+                    <h3 className="font-bold text-sm leading-tight text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
+                        <Link href={`/${article.url}`} className="hover:underline">{title}</Link>
+                    </h3>
+                    <div className="text-xs text-gray-500">{formattedDate}</div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={`p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${isSelected ? 'ring-2 ring-green-500' : ''} ${highlight ? 'border-green-500 md:col-span-1 lg:col-span-1 border-2' : ''}`}>
@@ -102,14 +121,24 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
                     )}
                 </div>
             )}
-            {article.status === 'draft' && onScrape && (
-                <div className="mt-2 flex justify-end border-t pt-2 border-gray-100 dark:border-gray-700">
-                    <button
-                        onClick={() => onScrape(article)}
-                        className="text-sm px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded transition-colors"
-                    >
-                        Recuperar Original
-                    </button>
+            {article.status === 'draft' && (
+                <div className="mt-2 flex gap-2 justify-end border-t pt-2 border-gray-100 dark:border-gray-700">
+                    {onScrape && (
+                        <button
+                            onClick={() => onScrape(article)}
+                            className="text-sm px-3 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded transition-colors"
+                        >
+                            ↻ Re-Scrape
+                        </button>
+                    )}
+                    {onSanityPush && (
+                        <button
+                            onClick={() => onSanityPush(article)}
+                            className="text-sm px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors font-medium flex items-center gap-1"
+                        >
+                            <span>⚡</span> Aprobar en CMS
+                        </button>
+                    )}
                 </div>
             )}
         </div>

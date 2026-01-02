@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { schedulerRepository, SchedulerStatus } from '../data/schedulerRepository';
 import { useAuthViewModel } from './useAuthViewModel';
+import { getAuthToken } from '../utils/clientAuth';
 
 export function useSchedulerViewModel() {
     const [status, setStatus] = useState<SchedulerStatus | null>(null);
@@ -9,8 +10,9 @@ export function useSchedulerViewModel() {
     const { user } = useAuthViewModel();
 
     const fetchStatus = async () => {
-        const token = localStorage.getItem('token');
-        if (!token || user?.role !== 'admin') return;
+        if (user?.role !== 'admin') return;
+        const token = await getAuthToken();
+        if (!token) return;
 
         try {
             const data = await schedulerRepository.getStatus(token);
@@ -29,10 +31,10 @@ export function useSchedulerViewModel() {
     }, [user]);
 
     const startScheduler = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
         setLoading(true);
         try {
+            const token = await getAuthToken();
+            if (!token) return;
             await schedulerRepository.start(token);
             await fetchStatus();
         } catch (err) {
@@ -43,10 +45,10 @@ export function useSchedulerViewModel() {
     };
 
     const stopScheduler = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
         setLoading(true);
         try {
+            const token = await getAuthToken();
+            if (!token) return;
             await schedulerRepository.stop(token);
             await fetchStatus();
         } catch (err) {
@@ -57,10 +59,10 @@ export function useSchedulerViewModel() {
     };
 
     const runNow = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
         setLoading(true);
         try {
+            const token = await getAuthToken();
+            if (!token) return;
             await schedulerRepository.runNow(token);
             alert('Ingestion triggered in background');
         } catch (err) {

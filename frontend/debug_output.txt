@@ -1,0 +1,11 @@
+[dotenv@17.2.3] injecting env (11) from .env.local -- tip: ­ƒùé´©Å backup and recover secrets: https://dotenvx.com/ops
+--- Testing AuthClient Instantiation ---
+AuthClient instantiated successfully
+Handler exists: true
+--- Testing Handler Invocation ---
+Handler crashed: TypeError: Cannot destructure property 'pathname' of 'req.nextUrl' as it is undefined.
+    at AuthClient.handler (file:///C:/Users/mapap/Desktop/raiz/raiz/frontend/node_modules/@auth0/nextjs-auth0/dist/server/auth-client.js:148:15)
+    at file:///C:/Users/mapap/Desktop/raiz/raiz/frontend/debug_auth0.mjs:31:38
+    at ModuleJob.run (node:internal/modules/esm/module_job:377:25)
+    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:671:26)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
