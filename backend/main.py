@@ -28,7 +28,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -374,6 +374,35 @@ def audit_article(article_id: int, session: Session = Depends(get_session), curr
     audit_report = audit_article_content(article.content, reference_content)
     print(f"DEBUG: Audit report generated. Length: {len(audit_report)}")
     
+    return {"audit_report": audit_report}
+
+class AnalyzeDraftRequest(BaseModel):
+    title: str
+    content: str
+
+@app.post("/api/ai/analyze-draft")
+def analyze_draft(request: AnalyzeDraftRequest, session: Session = Depends(get_session), current_user: User = Depends(get_optional_current_user)):
+    from app.services.llm import analyze_draft_content
+    return analyze_draft_content(request.title, request.content)
+
+class RefineTextRequest(BaseModel):
+    content: str
+    instruction: str
+
+@app.post("/api/ai/refine-text")
+def refine_text_endpoint(request: RefineTextRequest, current_user: User = Depends(get_optional_current_user)):
+    from app.services.llm import refine_article_content
+    refined_content = refine_article_content(request.content, request.instruction)
+    return {"refined_content": refined_content}
+
+class AuditTextRequest(BaseModel):
+    content: str
+    reference_content: Optional[str] = ""
+
+@app.post("/api/ai/audit-text")
+def audit_text_endpoint(request: AuditTextRequest, current_user: User = Depends(get_optional_current_user)):
+    from app.services.llm import audit_article_content
+    audit_report = audit_article_content(request.content, request.reference_content or "")
     return {"audit_report": audit_report}
 
 # --- Knowledge Base Endpoints ---

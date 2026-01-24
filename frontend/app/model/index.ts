@@ -1,7 +1,7 @@
 export interface Article {
   id: number | string;
   title: string;
-  content: string;
+  content: string | any | any[];
   url: string;
   source: string;
   published_at?: string;

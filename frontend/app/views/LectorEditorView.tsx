@@ -3,6 +3,7 @@
 import { Article } from '../model';
 import ArticleCard from '../ui/ArticleCard';
 import Link from 'next/link';
+import RichTextEditor from '../ui/RichTextEditor';
 
 interface CuratorEditorViewProps {
     article: Article;
@@ -49,7 +50,7 @@ interface CuratorEditorViewProps {
     onRecoverOriginal: () => void;
 }
 
-export default function CuratorEditorView({
+export default function LectorEditorView({
     article,
     title, setTitle,
     content, setContent,
@@ -90,8 +91,8 @@ export default function CuratorEditorView({
             {/* Header */}
             <header className="bg-white dark:bg-gray-800 shadow px-6 py-4 flex justify-between items-center sticky top-0 z-10">
                 <div className="flex items-center gap-4">
-                    <Link href="/curator" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        &larr; Volver al Panel
+                    <Link href="/lector" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        &larr; Volver al Lector
                     </Link>
                     <h1 className="text-xl font-bold dark:text-white">Editor de Publicación</h1>
                 </div>
@@ -226,10 +227,9 @@ export default function CuratorEditorView({
                                         ↺ Recuperar Original
                                     </button>
                                 </div>
-                                <textarea
-                                    value={content}
-                                    onChange={(e) => setContent(e.target.value)}
-                                    className="w-full h-96 px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-700 dark:text-white font-mono text-sm resize-none"
+                                <RichTextEditor
+                                    content={content}
+                                    onChange={setContent}
                                 />
                             </div>
 
@@ -329,7 +329,7 @@ export default function CuratorEditorView({
                         </div>
 
                         <div className="prose dark:prose-invert max-w-none">
-                            <div className="whitespace-pre-wrap">{article.content}</div>
+                            <div dangerouslySetInnerHTML={{ __html: article.content }} />
                         </div>
 
                         {article.tags && (

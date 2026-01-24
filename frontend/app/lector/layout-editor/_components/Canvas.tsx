@@ -47,6 +47,8 @@ const getDefaultLayout = (block: LayoutBlock, index: number): LayoutItem => {
     }
 };
 
+
+
 export default function Canvas({ blocks, onSelectBlock, selectedBlockId, onLayoutChange }: CanvasProps) {
     const { setNodeRef: setDroppableRef } = useDroppable({
         id: 'canvas',
@@ -54,8 +56,9 @@ export default function Canvas({ blocks, onSelectBlock, selectedBlockId, onLayou
 
     // Custom Width Provider Logic
     const containerRef = useRef<HTMLDivElement>(null);
-    const [width, setWidth] = useState(1240);
+    const [scale, setScale] = useState(1);
     const [mounted, setMounted] = useState(false);
+    const REFERENCE_WIDTH = 1280; // max-w-7xl
 
     useEffect(() => {
         setMounted(true);
@@ -73,8 +76,9 @@ export default function Canvas({ blocks, onSelectBlock, selectedBlockId, onLayou
                 // Let's rely on clientWidth of the container minus padding calculation or just Ref the inner part?
                 // Simpler: Ref the div that WRAPS the Display, OR just take the width and subtract manually.
                 // Let's use `entry.contentRect.width` which corresponds to the content box.
-                if (newWidth > 0 && Math.abs(newWidth - width) > 10) {
-                    setWidth(newWidth - 2); // Small buffer
+                if (newWidth > 0) {
+                    const newScale = Math.min(1, (newWidth - 48) / REFERENCE_WIDTH); // 48px padding buffer
+                    setScale(newScale);
                 }
             }
         });
@@ -137,56 +141,63 @@ export default function Canvas({ blocks, onSelectBlock, selectedBlockId, onLayou
             )}
 
             {blocks.length > 0 && mounted && (
-                <GridLayout
-                    className="layout"
-                    layout={layout}
-                    cols={12}
-                    rowHeight={60}
-                    width={width}
-                    // @ts-ignore - Layout type mismatch between versions
-                    onLayoutChange={handleLayoutChange}
-                    draggableHandle=".drag-handle"
-                    isResizable={true}
-                    isDraggable={true}
-                    compactType="vertical"
-                    preventCollision={false}
-                >
-                    {blocks.map(block => {
-                        const isSelected = block.id === selectedBlockId;
-                        const Component = resolveBlockComponent(block.type);
+                <div style={{
+                    width: REFERENCE_WIDTH,
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'top left',
+                    marginBottom: '100px' // Extra space for footer
+                }}>
+                    <GridLayout
+                        className="layout"
+                        layout={layout}
+                        cols={12}
+                        rowHeight={60}
+                        width={REFERENCE_WIDTH}
+                        // @ts-ignore - Layout type mismatch between versions
+                        onLayoutChange={handleLayoutChange}
+                        draggableHandle=".drag-handle"
+                        isResizable={true}
+                        isDraggable={true}
+                        compactType="vertical"
+                        preventCollision={false}
+                    >
+                        {blocks.map(block => {
+                            const isSelected = block.id === selectedBlockId;
+                            const Component = resolveBlockComponent(block.type);
 
-                        return (
-                            <div
-                                key={block.id}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onSelectBlock(block.id);
-                                }}
-                                className={`relative transition-all duration-200 border-2 rounded-lg overflow-hidden bg-white dark:bg-gray-900 ${isSelected
-                                    ? 'border-blue-500 ring-4 ring-blue-500/20 shadow-lg'
-                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'
-                                    }`}
-                            >
-                                {/* Drag Handle */}
-                                <div className="drag-handle absolute top-0 left-0 right-0 h-6 bg-gray-100 dark:bg-gray-800 flex items-center justify-center cursor-move border-b border-gray-200 dark:border-gray-700 z-10">
-                                    <span className="text-xs text-gray-500">⋮⋮ {block.type.replace('Block', '')}</span>
-                                </div>
-
-                                {/* Block Content */}
-                                <div className="pt-6 h-full overflow-auto">
-                                    <Component data={block.data} />
-                                </div>
-
-                                {/* Resize indicator */}
-                                {isSelected && (
-                                    <div className="absolute bottom-1 right-1 text-xs text-blue-500 bg-white/80 px-1 rounded">
-                                        ↘ resize
+                            return (
+                                <div
+                                    key={block.id}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelectBlock(block.id);
+                                    }}
+                                    className={`relative transition-all duration-200 border-2 rounded-lg overflow-hidden bg-white dark:bg-gray-900 ${isSelected
+                                        ? 'border-blue-500 ring-4 ring-blue-500/20 shadow-lg'
+                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-400'
+                                        }`}
+                                >
+                                    {/* Drag Handle */}
+                                    <div className="drag-handle absolute top-0 left-0 right-0 h-6 bg-gray-100 dark:bg-gray-800 flex items-center justify-center cursor-move border-b border-gray-200 dark:border-gray-700 z-10">
+                                        <span className="text-xs text-gray-500">⋮⋮ {block.type.replace('Block', '')}</span>
                                     </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </GridLayout>
+
+                                    {/* Block Content */}
+                                    <div className="pt-6 h-full overflow-auto">
+                                        <Component data={block.data} />
+                                    </div>
+
+                                    {/* Resize indicator */}
+                                    {isSelected && (
+                                        <div className="absolute bottom-1 right-1 text-xs text-blue-500 bg-white/80 px-1 rounded">
+                                            ↘ resize
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </GridLayout>
+                </div>
             )}
         </div>
     );

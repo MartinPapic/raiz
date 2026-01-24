@@ -40,7 +40,7 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
                 <div className="flex flex-col justify-center">
                     <span className="text-[10px] font-bold text-green-600 uppercase tracking-wide mb-1">{source}</span>
                     <h3 className="font-bold text-sm leading-tight text-gray-900 dark:text-gray-100 mb-1 line-clamp-2">
-                        <Link href={`/${article.url}`} className="hover:underline">{title}</Link>
+                        <Link href={`/article/${article.url || article.id}`} className="hover:underline">{title}</Link>
                     </h3>
                     <div className="text-xs text-gray-500">{formattedDate}</div>
                 </div>
@@ -56,7 +56,7 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
                         <input
                             type="checkbox"
                             checked={isSelected || false}
-                            onChange={() => onToggleSelect(article.id)}
+                            onChange={() => typeof article.id === 'number' && onToggleSelect(article.id)}
                             className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:focus:ring-green-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                         />
                     )}
@@ -77,7 +77,7 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
 
             </div>
             <h3 className={`text-lg font-bold mb-2 text-gray-900 dark:text-gray-100 ${highlight ? 'text-xl md:text-2xl' : ''}`}>
-                <Link href={`/article/${article.id}`} className="hover:underline">
+                <Link href={`/article/${article.url || article.id}`} className="hover:underline">
                     {title}
                 </Link>
             </h3>
@@ -89,7 +89,7 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
             </div>
             <div className="flex justify-end">
                 <Link
-                    href={`/article/${article.id}`}
+                    href={`/article/${article.url || article.id}`}
                     className="text-sm font-medium text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
                 >
                     Leer artículo &rarr;
@@ -111,9 +111,9 @@ export default function ArticleCard({ article, showEditButton, onEdit, onDelete,
                             Archivar
                         </button>
                     )}
-                    {onDelete && (
+                    {onDelete && typeof article.id === 'number' && (
                         <button
-                            onClick={() => onDelete(article.id)}
+                            onClick={() => onDelete(article.id as number)}
                             className="text-sm px-3 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded transition-colors"
                         >
                             Eliminar

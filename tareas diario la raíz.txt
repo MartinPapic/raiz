@@ -1,0 +1,42 @@
+tareas diario la raíz
+
+
+0.- Login. manejar usuarios y autenticación desde Auth0 sin excepción
+1.- Header: disponibilizar secciones del diario, a la vista
+2.- lector de noticias:
+	2.1 cambiar nombre de curador a lector de noticias
+	2.2 unir con CMS
+	2.3 botón de justificar texto
+	2.4 simplificar lector de noticias
+	2.5 agregar LLM IA a CMS
+	2.6 Módulo portada: simplificar en formularios en el CMS
+3.- Categorías:	
+	- Quiénes somos (f)
+	- Contacto (f)
+	- Secciones sobre ciencia arte y territorio:
+		- Economía
+		- Política
+		- Cultura
+		- Tecnología
+		- Medio Ambiente
+		- Opinión
+		- Panoramas
+		- Regional
+		- Destacados
+4.- Eliminar disponibilidad de login, sólo para admin en dirección, sin botón.
+
+
+5.- Herramientas de diagramación:
+	- casilla de título
+	- cuadro de texto con opciones de edición de texto
+	- SEO, semáforo de efectividad (editar slug, descripción metadata, palabra clave; porcentaje de frases cortas)
+	- etiquetas
+	- categoría
+	- imagen
+
+6.- Implementar Google analytics
+
+próximamente:
+	- lector de noticias alimentado por scraping
+	- recomendación de noticias por cookies
+	- semrush o similarweb/ alternativas open source

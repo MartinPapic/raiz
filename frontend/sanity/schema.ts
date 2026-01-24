@@ -13,6 +13,8 @@ import tickerBlock from './schemas/tickerBlock'
 
 import footerSettings from './schemas/footerSettings'
 
+import section from './schemas/section'
+
 export const schema: { types: SchemaTypeDefinition[] } = {
-    types: [article, author, category, blockContent, homepage, heroBlock, gridBlock, listBlock, opinionBlock, tickerBlock, footerSettings],
+    types: [article, author, category, section, blockContent, homepage, heroBlock, gridBlock, listBlock, opinionBlock, tickerBlock, footerSettings],
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { client } from '../../sanity/lib/client';
 import { defineQuery } from 'next-sanity';
-import { LayoutBlock } from '../curator/layout-editor/page';
+import { LayoutBlock } from '../lector/layout-editor/page';
 import { Article } from '../model';
 
 export function useLayoutViewModel() {

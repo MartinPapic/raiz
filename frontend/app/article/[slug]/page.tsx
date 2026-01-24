@@ -19,8 +19,8 @@ const ARTICLE_QUERY = defineQuery(`
   }
 `);
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-    const { slug } = params;
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+    const { slug } = await params;
 
     if (/^\d+$/.test(slug)) {
         // Legacy/Numeric ID: Fetch basic metadata or default
@@ -36,6 +36,9 @@ export async function generateMetadata({ params }: { params: { slug: string } })
     if (!doc) {
         return {
             title: 'Artículo no encontrado - Raíz',
+            alternates: {
+                canonical: `http://localhost:3000/article/${slug}`,
+            },
         };
     }
 
@@ -50,11 +53,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
             authors: [doc.author || 'Raíz'],
             publishedTime: doc.publishedAt,
         },
+        alternates: {
+            canonical: `http://localhost:3000/article/${doc.slug}`,
+        },
     };
 }
 
-export default async function Page({ params }: { params: { slug: string } }) {
-    const { slug } = params;
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+    const { slug } = await params;
 
     // Hybrid Logic:
     // 1. Check if slug is a numeric ID (Legacy / Python DB)
@@ -82,7 +88,7 @@ export default async function Page({ params }: { params: { slug: string } }) {
         id: doc._id,
         title: doc.title,
         summary: doc.lead,
-        content: doc.body ? 'Contenido completo en desarrollo (PortableText)' : doc.lead, // Temp placeholder for body
+        content: doc.body, // Pass the PortableText array directly
         status: 'published',
         source: 'Raíz', // First-party content
         url: doc.slug,

@@ -1,17 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCuratorViewModel } from '../viewmodels/useCuratorViewModel';
+import { useLectorViewModel } from '../viewmodels/useLectorViewModel';
 import ArticleCard from '../ui/ArticleCard';
 import SearchBar from '../ui/SearchBar';
-import IngestionControl from '../ui/IngestionControl';
-import SourceList from '../ui/SourceList';
-import SuccessfulSourceList from '../ui/SuccessfulSourceList';
-import ConnectionHistoryList from '../ui/ConnectionHistoryList';
-import SchedulerControl from '../ui/SchedulerControl';
 import Navbar from '../ui/Navbar';
 
-export default function CuratorView() {
+export default function LectorView() {
     const router = useRouter();
 
     const {
@@ -76,7 +71,7 @@ export default function CuratorView() {
         handleIngestArticle,
         handleSanityPush,
         logout
-    } = useCuratorViewModel();
+    } = useLectorViewModel();
 
     if (authLoading) {
         return (
@@ -87,17 +82,40 @@ export default function CuratorView() {
     }
 
     if (!user || user.role !== 'admin') {
-        return null; // Will redirect
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4">
+                <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full text-center">
+                    <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m0 0v2m0-2h2m-2 0H10m2-5h2m-2 0h-2m2 0V8m0-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2m2 2h2m2 0h2M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-bold mb-2">Acceso Restringido</h2>
+                    <p className="text-gray-600 dark:text-gray-300 mb-6">
+                        No tienes permisos de administrador para ver esta página.
+                    </p>
+
+                    <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded text-left text-sm mb-6 font-mono overflow-auto">
+                        <p><strong>Usuario:</strong> {user?.username || 'No conectado'}</p>
+                        <p><strong>Email:</strong> {user?.username || 'N/A'}</p>
+                        <p><strong>Rol Detectado:</strong> {user?.role || 'None'}</p>
+                    </div>
+
+                    <button
+                        onClick={() => router.push('/')}
+                        className="w-full px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800 transition-colors"
+                    >
+                        Volver al Inicio
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (
         <main className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-            <Navbar
-                user={user}
-                onLogout={logout}
-                isCuratorMode={true} // Always active in this view
-                onToggleCuratorMode={() => { }} // No-op
-            />
+            {/* Navbar is handled by global Layout */}
+
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Controls */}
@@ -107,31 +125,6 @@ export default function CuratorView() {
                     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow space-y-4">
                         <div className="flex justify-between items-center">
                             <h3 className="font-semibold">Panel de Control</h3>
-                            <button
-                                onClick={() => setShowSourceManager(!showSourceManager)}
-                                className="text-sm text-blue-600 hover:underline"
-                            >
-                                {showSourceManager ? 'Ocultar Fuentes' : 'Administrar Fuentes'}
-                            </button>
-                        </div>
-
-                        {showSourceManager && <SourceList />}
-
-                        <SchedulerControl />
-
-                        <SuccessfulSourceList
-                            sources={successfulSources}
-                            onSelectSource={(url, name) => setIngestionPrefill({ url, source: name })}
-                        />
-
-                        <IngestionControl
-                            onIngestComplete={refreshArticles}
-                            prefill={ingestionPrefill}
-                        />
-
-                        <ConnectionHistoryList history={connectionHistory} />
-
-                        <div className="flex justify-between items-center pt-2 border-t dark:border-gray-700">
                             <button
                                 onClick={() => setShowNewArticleModal(true)}
                                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium text-sm flex items-center gap-2"
@@ -145,11 +138,8 @@ export default function CuratorView() {
                                 {(['draft', 'published', 'archived'] as const).map((status) => (
                                     <button
                                         key={status}
-                                        onClick={() => {
-                                            setFilterStatus(status);
-                                            setViewMode('list');
-                                        }}
-                                        className={`px-3 py-1 rounded-full text-sm capitalize ${filterStatus === status && viewMode === 'list'
+                                        onClick={() => setFilterStatus(status)}
+                                        className={`px-3 py-1 rounded-full text-sm capitalize ${filterStatus === status
                                             ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 font-medium'
                                             : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
                                             }`}
@@ -157,73 +147,6 @@ export default function CuratorView() {
                                         {status === 'draft' ? 'Borradores' : status === 'published' ? 'Validados' : 'Archivados'}
                                     </button>
                                 ))}
-                            </div>
-
-                            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                                <button
-                                    onClick={() => setViewMode('list')}
-                                    className={`p-2 rounded-md transition-all flex items-center justify-center ${viewMode === 'list'
-                                        ? 'bg-white dark:bg-gray-600 shadow text-green-600 dark:text-green-400'
-                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-                                    title="Vista de Lista"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <line x1="8" y1="6" x2="21" y2="6"></line>
-                                        <line x1="8" y1="12" x2="21" y2="12"></line>
-                                        <line x1="8" y1="18" x2="21" y2="18"></line>
-                                        <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                                        <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                                        <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                                    </svg>
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setViewMode('columns');
-                                        setFilterStatus('all');
-                                    }}
-                                    className={`p-2 rounded-md transition-all flex items-center justify-center ${viewMode === 'columns'
-                                        ? 'bg-white dark:bg-gray-600 shadow text-green-600 dark:text-green-400'
-                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-                                    title="Vista de Columnas"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                        <line x1="9" y1="3" x2="9" y2="21"></line>
-                                        <line x1="15" y1="3" x2="15" y2="21"></line>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Filters */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t dark:border-gray-700">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Filtrar por nombre</label>
-                                <input
-                                    type="text"
-                                    value={filterText}
-                                    onChange={(e) => setFilterText(e.target.value)}
-                                    placeholder="Buscar..."
-                                    className="w-full px-3 py-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Desde</label>
-                                <input
-                                    type="date"
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Hasta</label>
-                                <input
-                                    type="date"
-                                    value={endDate}
-                                    onChange={(e) => setEndDate(e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                                />
                             </div>
                         </div>
 
@@ -279,14 +202,14 @@ export default function CuratorView() {
                         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
                             <p className="text-gray-500">No se encontraron artículos.</p>
                         </div>
-                    ) : viewMode === 'list' ? (
+                    ) : (
                         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {displayedArticles.map((article) => (
                                 <ArticleCard
                                     key={article.id}
                                     article={article}
                                     showEditButton={true}
-                                    onEdit={() => router.push(`/curator/editor/${article.id}`)}
+                                    onEdit={() => router.push(`/studio/structure/article;${article.id}`)}
                                     onDelete={() => handleDeleteArticle(article.id as number)}
                                     onArchive={() => handleArchiveArticle(article)}
                                     onScrape={handleScrapeArticle}
@@ -294,87 +217,6 @@ export default function CuratorView() {
                                     onToggleSelect={(id) => handleToggleSelect(id as number)}
                                 />
                             ))}
-                        </div>
-                    ) : (
-                        /* Columns View */
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-450px)] min-h-[500px] overflow-hidden">
-                            {/* Draft Column */}
-                            <div className="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg p-4 h-full min-h-0">
-                                <h3 className="font-semibold mb-4 flex items-center justify-between text-gray-700 dark:text-gray-300">
-                                    <span>Borradores</span>
-                                    <span className="bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full text-xs">
-                                        {displayedArticles.filter(a => a.status === 'draft').length}
-                                    </span>
-                                </h3>
-                                <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                                    {displayedArticles.filter(a => a.status === 'draft').map(article => (
-                                        <ArticleCard
-                                            key={article.id}
-                                            article={article}
-                                            showEditButton={true}
-                                            onEdit={() => router.push(`/curator/editor/${article.id}`)}
-                                            onDelete={() => handleDeleteArticle(article.id as number)}
-                                            onArchive={() => handleArchiveArticle(article)}
-                                            onScrape={handleScrapeArticle}
-                                            onSanityPush={handleSanityPush}
-                                            isSelected={selectedArticleIds.has(article.id as number)}
-                                            onToggleSelect={(id) => handleToggleSelect(id as number)}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Published Column */}
-                            <div className="flex flex-col bg-green-50 dark:bg-green-900/20 rounded-lg p-4 h-full min-h-0">
-                                <h3 className="font-semibold mb-4 flex items-center justify-between text-green-800 dark:text-green-300">
-                                    <span>Validados</span>
-                                    <span className="bg-green-100 dark:bg-green-800 px-2 py-0.5 rounded-full text-xs">
-                                        {displayedArticles.filter(a => a.status === 'published').length}
-                                    </span>
-                                </h3>
-                                <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-green-200 dark:scrollbar-thumb-green-800">
-                                    {displayedArticles.filter(a => a.status === 'published').map(article => (
-                                        <ArticleCard
-                                            key={article.id}
-                                            article={article}
-                                            showEditButton={true}
-                                            onEdit={() => router.push(`/curator/editor/${article.id}`)}
-                                            onDelete={() => handleDeleteArticle(article.id as number)}
-                                            onArchive={() => handleArchiveArticle(article)}
-                                            onScrape={handleScrapeArticle}
-                                            onSanityPush={handleSanityPush}
-                                            isSelected={selectedArticleIds.has(article.id as number)}
-                                            onToggleSelect={(id) => handleToggleSelect(id as number)}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Archived Column */}
-                            <div className="flex flex-col bg-gray-100 dark:bg-gray-800 rounded-lg p-4 h-full min-h-0">
-                                <h3 className="font-semibold mb-4 flex items-center justify-between text-gray-700 dark:text-gray-300">
-                                    <span>Archivados</span>
-                                    <span className="bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full text-xs">
-                                        {displayedArticles.filter(a => a.status === 'archived').length}
-                                    </span>
-                                </h3>
-                                <div className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                                    {displayedArticles.filter(a => a.status === 'archived').map(article => (
-                                        <ArticleCard
-                                            key={article.id}
-                                            article={article}
-                                            showEditButton={true}
-                                            onEdit={() => router.push(`/curator/editor/${article.id}`)}
-                                            onDelete={() => handleDeleteArticle(article.id as number)}
-                                            onArchive={() => handleArchiveArticle(article)}
-                                            onScrape={handleScrapeArticle}
-                                            onSanityPush={handleSanityPush}
-                                            isSelected={selectedArticleIds.has(article.id as number)}
-                                            onToggleSelect={(id) => handleToggleSelect(id as number)}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
                         </div>
                     )}
                 </div>

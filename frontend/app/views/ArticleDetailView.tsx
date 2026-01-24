@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Article } from '../model';
 import { articleRepository } from '../data/articleRepository';
 import { useAuthViewModel } from '../viewmodels/useAuthViewModel';
+import { PortableText } from '@portabletext/react';
 
 interface ArticleDetailViewProps {
     articleId?: number;
@@ -105,10 +106,16 @@ export default function ArticleDetailView({ articleId, article: preFetchedArticl
                         {article.title}
                     </h1>
 
+
+
                     <div className="prose dark:prose-invert max-w-none mb-8">
-                        <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                            {article.content || article.summary}
-                        </p>
+                        {typeof article.content === 'string' ? (
+                            <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                {article.content || article.summary}
+                            </p>
+                        ) : (
+                            <PortableText value={article.content} />
+                        )}
                     </div>
 
                     <div className="border-t border-gray-200 dark:border-gray-700 pt-6 flex justify-between items-center">

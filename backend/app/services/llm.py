@@ -295,3 +295,54 @@ def audit_article_content(content: str, original_content: str = "") -> str:
     except Exception as e:
         print(f"Error auditing content with Gemini: {e}")
         return f"Error auditing content: {str(e)}"
+
+def analyze_draft_content(title: str, content: str) -> dict:
+    """
+    Analyzes a draft article and suggests SEO improvements (Title, Summary, Keywords).
+    """
+    if not API_KEY:
+        return {"error": "API Key not found"}
+
+    try:
+        model = genai.GenerativeModel('gemini-flash-latest')
+
+        prompt = f"""
+        Actúa como un experto en SEO y Periodismo Digital.
+        Analiza el siguiente borrador de noticia y genera sugerencias para optimizar su impacto y visibilidad.
+
+        TÍTULO ACTUAL: {title}
+        CONTENIDO:
+        {content[:4000]} (Truncado si es muy largo)
+
+        Tu tarea es generar:
+        1. Un **TÍTULO SUGERIDO**: Más atractivo, con palabras clave, max 60 caracteres.
+        2. Un **RESUMEN (BAJADA)**: 2-3 frases que enganchen al lector y resuman lo esencial.
+        3. **PALABRAS CLAVE**: 5 tags relevantes para búsqueda.
+
+        RESPOUNDE ÚNICAMENTE CON UN JSON VÁLIDO:
+        {{
+            "suggestedTitle": "...",
+            "suggestedSummary": "...",
+            "keywords": ["tag1", "tag2", "tag3"]
+        }}
+        """
+
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        
+        # Clean markdown
+        if "```json" in text:
+            text = text.split("```json")[1].split("```")[0]
+        elif "```" in text:
+            text = text.split("```")[1].split("```")[0]
+
+        import json
+        return json.loads(text)
+
+    except Exception as e:
+        print(f"Error analyzing draft with Gemini: {e}")
+        return {
+            "suggestedTitle": title,
+            "suggestedSummary": "Error analyzing content.",
+            "keywords": []
+        }

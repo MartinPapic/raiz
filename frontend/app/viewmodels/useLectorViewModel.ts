@@ -7,18 +7,14 @@ import { articleRepository } from '../data/articleRepository';
 import { Article } from '../model';
 import { getAuthToken } from '../utils/clientAuth';
 
-export function useCuratorViewModel() {
+export function useLectorViewModel() {
     const router = useRouter();
     const { user, loading: authLoading } = useAuthViewModel();
 
     // Auth Protection
-    useEffect(() => {
-        if (!authLoading) {
-            if (!user || user.role !== 'admin') {
-                router.push('/');
-            }
-        }
-    }, [user, authLoading, router]);
+    // Auth Protection
+    // We removed the silent redirect to show a proper Access Denied screen in the View
+    // This helps with debugging why a user is not considered an admin
 
     // Core State
     const [filterStatus, setFilterStatus] = useState<'draft' | 'published' | 'archived' | 'all'>('all');
@@ -136,7 +132,7 @@ export function useCuratorViewModel() {
         if (selectedArticleIds.size === displayedArticles.length) {
             setSelectedArticleIds(new Set());
         } else {
-            setSelectedArticleIds(new Set(displayedArticles.map(a => a.id)));
+            setSelectedArticleIds(new Set(displayedArticles.map(a => a.id as number)));
         }
     };
 

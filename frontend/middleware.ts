@@ -2,7 +2,15 @@ import { auth0 } from "./lib/auth0";
 import { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-    return await auth0.middleware(request);
+    const res = await auth0.middleware(request);
+
+    const protectedPaths = ["/lector", "/admin", "/studio"];
+    const isProtected = protectedPaths.some(path => request.nextUrl.pathname.startsWith(path));
+
+    if (isProtected) {
+        return await auth0.getSession(request) ? res : Response.redirect(new URL("/auth/login", request.url));
+    }
+    return res;
 }
 
 export const config = {

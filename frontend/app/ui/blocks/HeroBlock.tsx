@@ -1,23 +1,44 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 
-export default function HeroBlock({ data }: { data: any }) {
-    const { article, layoutVariant, customHeadline } = data;
+interface HeroBlockProps {
+    data?: any;
+    article?: any;
+    layoutVariant?: string;
+    customHeadline?: string;
+}
 
-    if (!article) return null; // Don't show empty block
+export default function HeroBlock({ data, article, layoutVariant, customHeadline }: HeroBlockProps) {
+    const item = article || data?.article;
+    const { layoutVariant: dataVariant, customHeadline: dataHeadline } = data || {};
 
-    const isSplit = layoutVariant === 'split';
-    const headline = customHeadline || article.title;
-    const summary = article.summary;
+    // Legacy support for 'data' prop
+    const finalVariant = layoutVariant || dataVariant;
+    const finalHeadline = customHeadline || dataHeadline;
+
+    if (!item) return null; // Don't show empty block
+
+    const isSplit = finalVariant === 'split';
+    const headline = finalHeadline || item.title;
+    const summary = item.summary;
+
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return '';
+        return new Date(dateString).toLocaleDateString('es-ES', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    };
 
     if (isSplit) {
         return (
-            <Link href={`/${article.url}`} className="block group">
+            <Link href={`/${item.url || item.slug}`} className="block group">
                 <div className="flex flex-col md:flex-row bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border dark:border-gray-700 min-h-[400px]">
                     <div className="md:w-1/2 relative min-h-[250px] md:min-h-auto overflow-hidden">
-                        {article.main_image ? (
+                        {item.main_image ? (
                             <img
-                                src={article.main_image}
+                                src={item.main_image}
                                 alt={headline}
                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                             />
@@ -29,7 +50,7 @@ export default function HeroBlock({ data }: { data: any }) {
                     </div>
                     <div className="md:w-1/2 p-8 flex flex-col justify-center">
                         <div className="text-sm font-semibold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wide">
-                            {article.source || 'Destacado'}
+                            {item.source || 'Destacado'}
                         </div>
                         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
                             {headline}
@@ -38,8 +59,8 @@ export default function HeroBlock({ data }: { data: any }) {
                             {summary}
                         </p>
                         <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                            {article.author && <span className="font-medium mr-4">{typeof article.author === 'string' ? article.author : article.author.name}</span>}
-                            <span>{new Date(article.published_at || Date.now()).toLocaleDateString()}</span>
+                            {item.author && <span className="font-medium mr-4">{typeof item.author === 'string' ? item.author : item.author.name}</span>}
+                            <span>{formatDate(item.published_at || item.publishedAt)}</span>
                         </div>
                     </div>
                 </div>
@@ -49,11 +70,11 @@ export default function HeroBlock({ data }: { data: any }) {
 
     // Default Full Overlay Style (Premium Look)
     return (
-        <Link href={`/${article.url}`} className="block group relative rounded-2xl overflow-hidden shadow-lg h-[500px]">
+        <Link href={`/${item.url || item.slug}`} className="block group relative rounded-2xl overflow-hidden shadow-lg h-[500px]">
             <div className="absolute inset-0">
-                {article.main_image ? (
+                {item.main_image ? (
                     <img
-                        src={article.main_image}
+                        src={item.main_image}
                         alt={headline}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     />
@@ -66,17 +87,17 @@ export default function HeroBlock({ data }: { data: any }) {
 
             <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 text-white max-w-4xl">
                 <div className="inline-block px-3 py-1 mb-4 bg-green-600/90 rounded-full text-xs font-bold uppercase tracking-wider">
-                    {article.source || 'Portada'}
+                    {item.source || 'Portada'}
                 </div>
                 <h2 className="text-3xl md:text-5xl font-bold mb-4 leading-tight">
                     {headline}
                 </h2>
                 <p className="text-lg md:text-xl text-gray-200 line-clamp-2 md:line-clamp-3 max-w-2xl">
-                    {summary}
+                    {summary || item.lead}
                 </p>
                 <div className="mt-6 flex items-center text-sm text-gray-300">
-                    {article.author && <span className="font-medium mr-4 border-r border-gray-500 pr-4">{typeof article.author === 'string' ? article.author : article.author.name}</span>}
-                    <span>{new Date(article.published_at || Date.now()).toLocaleDateString()}</span>
+                    {item.author && <span className="font-medium mr-4 border-r border-gray-500 pr-4">{typeof item.author === 'string' ? item.author : item.author.name}</span>}
+                    <span>{formatDate(item.published_at || item.publishedAt)}</span>
                 </div>
             </div>
         </Link>

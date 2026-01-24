@@ -7,6 +7,7 @@
 import { visionTool } from '@sanity/vision'
 import { defineConfig } from 'sanity'
 import { structureTool } from 'sanity/structure'
+import { SEOPane } from 'sanity-plugin-seo-pane'
 
 // Go to https://www.sanity.io/docs/api-versioning to learn how API versioning works
 import { apiVersion, dataset, projectId } from './sanity/env'
@@ -50,7 +51,7 @@ const CustomNavbar = (props: any) => {
                         {/* Admin Links */}
                         <div style={{ display: 'flex', gap: '12px' }}>
                             <a
-                                href="/curator"
+                                href="/lector"
                                 style={{
                                     textDecoration: 'none',
                                     fontSize: '14px',
@@ -62,7 +63,7 @@ const CustomNavbar = (props: any) => {
                                     transition: 'background-color 0.2s'
                                 }}
                             >
-                                Curador
+                                Lector de noticias
                             </a>
                             <a
                                 href="/studio"
@@ -80,7 +81,7 @@ const CustomNavbar = (props: any) => {
                                 📝 CMS
                             </a>
                             <a
-                                href="/curator/layout-editor"
+                                href="/lector/layout-editor"
                                 style={{
                                     textDecoration: 'none',
                                     fontSize: '14px',
@@ -134,7 +135,27 @@ export default defineConfig({
     // Add and edit the content schema in the './sanity/schema' folder
     schema,
     plugins: [
-        structureTool(),
+        structureTool({
+            defaultDocumentNode: (S, { schemaType }) => {
+                if (schemaType === 'article') {
+                    return S.document().views([
+                        S.view.form(),
+                        S.view
+                            .component(SEOPane)
+                            .options({
+                                // Retrieve the keywords and synonyms at the given dot-notation strings
+                                keywords: `seo.keywords`,
+                                synonyms: `seo.synonyms`,
+                                url: (doc: any) => doc?.slug?.current
+                                    ? `http://localhost:3000/article/${doc.slug.current}`
+                                    : 'http://localhost:3000',
+                            })
+                            .title('SEO')
+                    ])
+                }
+                return S.document().views([S.view.form()])
+            }
+        }),
         // Vision is a tool that lets you query your content with GROQ in the studio
         // https://www.sanity.io/docs/the-vision-plugin
         visionTool({ defaultApiVersion: apiVersion }),

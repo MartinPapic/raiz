@@ -1,15 +1,15 @@
 'use client';
 
 import { use } from 'react';
-import CuratorEditorView from '../../../views/CuratorEditorView';
-import { useCuratorEditorViewModel } from '../../../viewmodels/useCuratorEditorViewModel';
+import LectorEditorView from '../../../views/LectorEditorView';
+import { useLectorEditorViewModel } from '../../../viewmodels/useLectorEditorViewModel';
 
-export default function CuratorEditorPage({ params }: { params: Promise<{ id: string }> }) {
+export default function LectorEditorPage({ params }: { params: Promise<{ id: string }> }) {
     // Unwrap params using React.use()
     const { id } = use(params);
-    const articleId = parseInt(id);
+    const articleId = id;
 
-    const viewModel = useCuratorEditorViewModel(articleId);
+    const viewModel = useLectorEditorViewModel(articleId);
 
     if (viewModel.loading) {
         return <div className="flex justify-center items-center h-screen">Cargando editor...</div>;
@@ -20,7 +20,7 @@ export default function CuratorEditorPage({ params }: { params: Promise<{ id: st
     }
 
     return (
-        <CuratorEditorView
+        <LectorEditorView
             // Pass the entire ViewModel as props or destructure
             // Destructuring is cleaner for the View interface
             article={viewModel.article}

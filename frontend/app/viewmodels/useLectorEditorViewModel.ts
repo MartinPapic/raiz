@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { articleRepository } from '../data/articleRepository';
 import { Article } from '../model';
 
-export function useCuratorEditorViewModel(articleId: number) {
+export function useLectorEditorViewModel(articleId: string) {
     const router = useRouter();
     const [article, setArticle] = useState<Article | null>(null);
     const [loading, setLoading] = useState(true);
@@ -31,12 +31,9 @@ export function useCuratorEditorViewModel(articleId: number) {
     useEffect(() => {
         const fetchArticle = async () => {
             try {
-                const token = localStorage.getItem('token') || '';
-                // Fallback fetch if getById not in repo, but we should assume it is or add it.
-                // Using direct fetch as in original page for safety, or better: use repository.
-                // Let's use repository.getById if it exists, or implement it.
-                // In step 288 we saw getById implemented in articleRepository.
-                const data = await articleRepository.getById(articleId, token);
+                // We don't need the Auth0 token for the internal Next.js API unless we implement specific protection.
+                // For now, the middleware protects the page.
+                const data = await articleRepository.getById(articleId, '');
 
                 setArticle(data);
                 setTitle(data.title);
@@ -47,14 +44,14 @@ export function useCuratorEditorViewModel(articleId: number) {
 
                 // Fetch suggestions
                 if (data.tags) {
-                    articleRepository.getSuggestions(data.tags, '', token)
+                    articleRepository.getSuggestions(data.tags, '', '')
                         .then(setKbSuggestions)
                         .catch(err => console.error('Error fetching suggestions:', err));
                 }
             } catch (error) {
                 console.error('Error loading article:', error);
                 alert('Error cargando el artículo');
-                router.push('/curator');
+                router.push('/lector');
             } finally {
                 setLoading(false);
             }
@@ -70,25 +67,15 @@ export function useCuratorEditorViewModel(articleId: number) {
         if (!article) return;
         setIsSaving(true);
         try {
-            const token = localStorage.getItem('token') || '';
             const newSummary = content.length > 200 ? content.substring(0, 200) + '...' : content;
             const updatedArticle = { ...article, title, content, summary: newSummary, tags, status };
 
-            // Update locally first
-            await articleRepository.update(updatedArticle, token);
+            // Update directly to Sanity via Repository
+            await articleRepository.update(updatedArticle, '');
 
-            // AUTO-PUSH: If status is 'published', push to Sanity
-            if (status === 'published') {
-                try {
-                    await articleRepository.pushToSanity(updatedArticle, token);
-                    console.log('Auto-pushed to Sanity');
-                } catch (pushError) {
-                    console.error('Auto-push to Sanity failed:', pushError);
-                    alert('Se guardó localmente, pero falló el envío a Sanity. Intenta "Enviar a Sanity" desde el tablero.');
-                }
-            }
+            // No separate pushToSanity needed.
 
-            router.push('/curator');
+            router.push('/lector');
         } catch (error) {
             console.error('Error saving article:', error);
             alert('Error guardando el artículo');
@@ -98,7 +85,7 @@ export function useCuratorEditorViewModel(articleId: number) {
     };
 
     const handleCancel = () => {
-        router.push('/curator');
+        router.push('/lector');
     };
 
     const handleRegenerate = async () => {
@@ -106,8 +93,7 @@ export function useCuratorEditorViewModel(articleId: number) {
         if (!confirm('Esto reescribirá el título y el contenido usando IA. ¿Continuar?')) return;
         setIsRegenerating(true);
         try {
-            const token = localStorage.getItem('token') || '';
-            const regenerated = await articleRepository.regenerate(article.id as number, token, regenerateInstruction);
+            const regenerated = await articleRepository.regenerate(article.id, '', regenerateInstruction);
 
             setTitle(regenerated.title);
             setContent(regenerated.content || regenerated.summary || '');
@@ -124,8 +110,7 @@ export function useCuratorEditorViewModel(articleId: number) {
         if (!article) return;
         setIsRefining(true);
         try {
-            const token = localStorage.getItem('token') || '';
-            const refinedContent = await articleRepository.refine(article.id as number, content, instruction, token);
+            const refinedContent = await articleRepository.refine(article.id, content, instruction, '');
             setContent(refinedContent);
             setShowRefineMenu(false);
             setCustomInstruction('');
@@ -142,8 +127,7 @@ export function useCuratorEditorViewModel(articleId: number) {
         if (!confirm('Esto reemplazará el contenido actual con el texto original. ¿Continuar?')) return;
         setIsScraping(true);
         try {
-            const token = localStorage.getItem('token') || '';
-            const scraped = await articleRepository.scrape(article.id as number, token);
+            const scraped = await articleRepository.scrape(article.id, '');
             setOriginalContent(scraped.original_content || '');
         } catch (error) {
             console.error('Error scraping:', error);
@@ -157,8 +141,7 @@ export function useCuratorEditorViewModel(articleId: number) {
         if (!article) return;
         setIsAuditing(true);
         try {
-            const token = localStorage.getItem('token') || '';
-            const report = await articleRepository.audit(article.id as number, token);
+            const report = await articleRepository.audit(article.id, '');
             setAuditReport(report);
         } catch (error) {
             console.error('Error auditing:', error);
@@ -172,9 +155,8 @@ export function useCuratorEditorViewModel(articleId: number) {
         if (!article) return;
         setIsRefining(true);
         try {
-            const token = localStorage.getItem('token') || '';
             const instruction = `Corrige el siguiente artículo basándote ESTRICTAMENTE en los errores detectados en este reporte de auditoría. Si el reporte dice "sin errores", mejora el estilo general.\n\nREPORTE DE AUDITORÍA:\n${report}`;
-            const refinedContent = await articleRepository.refine(article.id as number, content, instruction, token);
+            const refinedContent = await articleRepository.refine(article.id, content, instruction, '');
             setContent(refinedContent);
         } catch (error) {
             console.error('Error refining with audit:', error);
@@ -185,18 +167,9 @@ export function useCuratorEditorViewModel(articleId: number) {
     };
 
     const handleAddToKB = async () => {
-        if (!article) return;
-        setIsAddingToKB(true);
-        try {
-            const token = localStorage.getItem('token') || '';
-            await articleRepository.addToKnowledgeBase(content, tags, article.id as number, token);
-            alert('Añadido a la base de conocimientos correctamente');
-        } catch (error) {
-            console.error('Error adding to KB:', error);
-            alert('Error al añadir a la base de conocimientos');
-        } finally {
-            setIsAddingToKB(false);
-        }
+        // Deprecated or requires number ID
+        // await articleRepository.addToKnowledgeBase(content, tags, article.id as number, '');
+        alert('Función temporalmente desactivada durante migración a Sanity');
     };
 
     const handleRecoverOriginal = () => {

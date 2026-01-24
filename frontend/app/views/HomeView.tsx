@@ -89,11 +89,27 @@ export default function HomeView({ initialFeatured = [], initialArticles = [], l
 
                 {/* DYNAMIC LAYOUT OR DEFAULT FALLBACK */}
                 {layout && layout.length > 0 ? (
-                    <div className="space-y-12">
+                    <div className="custom-grid-layout">
                         {layout.map((block: any) => {
                             const Component = resolveBlockComponent(block._type);
                             if (!Component) return null;
-                            return <Component key={block._key} data={block} />;
+
+                            // Default Layout Fallback if missing
+                            const l = block.layout || { x: 0, y: 0, w: 12, h: 4 };
+
+                            // CSS Variables for Grid Placement
+                            const style = {
+                                '--x': (l.x || 0) + 1,      // 1-based index
+                                '--y': (l.y || 0) + 1,      // 1-based index
+                                '--w': l.w || 12,           // default full width
+                                '--h': l.h || 4             // default height
+                            } as React.CSSProperties;
+
+                            return (
+                                <div key={block._key} className="custom-grid-item" style={style}>
+                                    <Component data={block} />
+                                </div>
+                            );
                         })}
                     </div>
                 ) : (
